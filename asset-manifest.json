@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/SOAPvsREST/static/css/main.c69f1c78.css",
+    "main.js": "/SOAPvsREST/static/js/main.33f1a530.js",
+    "static/js/453.eeab4c9c.chunk.js": "/SOAPvsREST/static/js/453.eeab4c9c.chunk.js",
+    "index.html": "/SOAPvsREST/index.html",
+    "main.c69f1c78.css.map": "/SOAPvsREST/static/css/main.c69f1c78.css.map",
+    "main.33f1a530.js.map": "/SOAPvsREST/static/js/main.33f1a530.js.map",
+    "453.eeab4c9c.chunk.js.map": "/SOAPvsREST/static/js/453.eeab4c9c.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.c69f1c78.css",
+    "static/js/main.33f1a530.js"
+  ]
+}
