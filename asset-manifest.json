@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/SOAPvsREST/static/css/main.c69f1c78.css",
-    "main.js": "/SOAPvsREST/static/js/main.33f1a530.js",
+    "main.css": "/SOAPvsREST/static/css/main.ab0d675b.css",
+    "main.js": "/SOAPvsREST/static/js/main.ba69afa8.js",
     "static/js/453.eeab4c9c.chunk.js": "/SOAPvsREST/static/js/453.eeab4c9c.chunk.js",
     "index.html": "/SOAPvsREST/index.html",
-    "main.c69f1c78.css.map": "/SOAPvsREST/static/css/main.c69f1c78.css.map",
-    "main.33f1a530.js.map": "/SOAPvsREST/static/js/main.33f1a530.js.map",
+    "main.ab0d675b.css.map": "/SOAPvsREST/static/css/main.ab0d675b.css.map",
+    "main.ba69afa8.js.map": "/SOAPvsREST/static/js/main.ba69afa8.js.map",
     "453.eeab4c9c.chunk.js.map": "/SOAPvsREST/static/js/453.eeab4c9c.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.c69f1c78.css",
-    "static/js/main.33f1a530.js"
+    "static/css/main.ab0d675b.css",
+    "static/js/main.ba69afa8.js"
   ]
 }
