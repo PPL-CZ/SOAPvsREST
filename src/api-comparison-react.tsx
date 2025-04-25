@@ -29,26 +29,10 @@ const apiData = {
     {
       category: 'shipment',
       soapOperation: 'CreatePackages',
-      soapDescription: 'Vloží nové zásilky pro import do systému',
-      restEndpoint: 'POST /shipment/batch',
-      restDescription: 'Slouží k vytvoření zásilky',
-      mainDifferences: 'REST API poskytuje více validačních pravidel, má jiný formát odpovědi a používá camelCase'
-    },
-    {
-      category: 'shipment',
-      soapOperation: 'CreatePackageLabel',
       soapDescription: 'Vloží nové zásilky pro import a vytvoří štítky',
       restEndpoint: 'POST /shipment/batch + GET /shipment/batch/{batchId}/label',
       restDescription: 'Slouží k vytvoření zásilky a získání štítků',
-      mainDifferences: 'V REST API je vytvoření štítku rozděleno na dva kroky'
-    },
-    {
-      category: 'shipment',
-      soapOperation: 'GetCplResult',
-      soapDescription: 'Stav zpracování requestu',
-      restEndpoint: 'GET /shipment/batch/{batchId}',
-      restDescription: 'Slouží k získání stavu importu zásilky',
-      mainDifferences: 'REST API používá standardní HTTP stavové kódy'
+      mainDifferences: 'REST API poskytuje více validačních pravidel, má jiný formát odpovědi a používá camelCase'
     },
     {
       category: 'shipment',
@@ -65,6 +49,14 @@ const apiData = {
       restEndpoint: 'POST /shipment/{shipmentNumber}/cancel',
       restDescription: 'Možnost stornovat balík, pokud nebyl fyzicky poslán',
       mainDifferences: 'REST API využívá URL parametr pro identifikaci zásilky'
+    },
+    {
+      category: 'shipment',
+      soapOperation: 'UpdatePackage',
+      soapDescription: 'Aktualizace údajů zásilky',
+      restEndpoint: 'POST /shipment/{shipmentNumber}/redirect',
+      restDescription: 'Možnost doplnit informace k balíku',
+      mainDifferences: 'REST API poskytuje omezenější možnosti aktualizace'
     },
     {
       category: 'order',
@@ -123,6 +115,78 @@ const apiData = {
       mainDifferences: 'REST API používá standardizovaný formát pro všechny číselníky'
     },
     {
+      category: 'codelist',
+      soapOperation: 'N/A',
+      soapDescription: 'Nepodporováno v SOAP',
+      restEndpoint: 'GET /codelist/ageCheck',
+      restDescription: 'Číselník pro službu kontroly věku příjemce',
+      mainDifferences: 'Dostupné pouze v REST API'
+    },
+    {
+      category: 'codelist',
+      soapOperation: 'N/A',
+      soapDescription: 'Nepodporováno v SOAP',
+      restEndpoint: 'GET /codelist/externalNumber',
+      restDescription: 'Číselník typů externích čísel',
+      mainDifferences: 'Dostupné pouze v REST API'
+    },
+    {
+      category: 'codelist',
+      soapOperation: 'GetProductCountry',
+      soapDescription: 'Vrátí země a produkty pro zákazníka',
+      restEndpoint: 'GET /codelist/country',
+      restDescription: 'Číselník zemí + povolení COD',
+      mainDifferences: 'REST API poskytuje jednodušší strukturu'
+    },
+    {
+      category: 'codelist',
+      soapOperation: 'N/A',
+      soapDescription: 'Nepodporováno v SOAP',
+      restEndpoint: 'GET /codelist/service',
+      restDescription: 'Metoda pro získání poskytovaných služeb k zásilkám',
+      mainDifferences: 'Dostupné pouze v REST API'
+    },
+    {
+      category: 'codelist',
+      soapOperation: 'N/A',
+      soapDescription: 'Nepodporováno v SOAP',
+      restEndpoint: 'GET /codelist/servicePriceLimit',
+      restDescription: 'Metoda pro získání minimálních a maximálních hodnot u služeb',
+      mainDifferences: 'Dostupné pouze v REST API'
+    },
+    {
+      category: 'codelist',
+      soapOperation: 'N/A',
+      soapDescription: 'Nepodporováno v SOAP',
+      restEndpoint: 'GET /codelist/shipmentPhase',
+      restDescription: 'Fáze zásilky',
+      mainDifferences: 'Dostupné pouze v REST API'
+    },
+    {
+      category: 'codelist',
+      soapOperation: 'N/A',
+      soapDescription: 'Nepodporováno v SOAP',
+      restEndpoint: 'GET /codelist/status',
+      restDescription: 'Statusy zásilky /shipment',
+      mainDifferences: 'Dostupné pouze v REST API'
+    },
+    {
+      category: 'codelist',
+      soapOperation: 'N/A',
+      soapDescription: 'Nepodporováno v SOAP',
+      restEndpoint: 'GET /codelist/validationMessage',
+      restDescription: 'Chybové hlášení',
+      mainDifferences: 'Dostupné pouze v REST API'
+    },
+    {
+      category: 'codelist',
+      soapOperation: 'N/A',
+      soapDescription: 'Nepodporováno v SOAP',
+      restEndpoint: 'GET /codelist/proofOfIdentityType',
+      restDescription: 'Typy osobních dokladů',
+      mainDifferences: 'Dostupné pouze v REST API'
+    },
+    {
       category: 'auth',
       soapOperation: 'Login',
       soapDescription: 'Vrátí autentikační ticket',
@@ -131,8 +195,7 @@ const apiData = {
       mainDifferences: 'REST API používá standardní OAuth2/JWT mechanismus místo vlastního'
     }
   ],
-  
-  // Detailní porovnání polí pro vybrané operace
+// Detailní porovnání polí pro vybrané operace
   fieldMappings: {
     'shipment-create': {
       title: 'Vytvoření zásilky',
@@ -656,7 +719,7 @@ const apiData = {
         }
       ]
     },
-    'accesspoint-get': {
+'accesspoint-get': {
       title: 'Výdejní místa',
       description: 'Porovnání struktur pro získání informací o výdejních místech',
       soapOperation: 'GetParcelShops',
@@ -1067,7 +1130,787 @@ const apiData = {
           notes: 'Kód země příjemce'
         }
       ]
+    },
+'codelist-currency': {
+      title: 'Číselník měn',
+      description: 'Porovnání struktur pro získání seznamu povolených měn',
+      soapOperation: 'GetCodCurrency',
+      restEndpoint: 'GET /codelist/currency',
+      fields: [
+        {
+          soapField: 'CurrencyCode',
+          restField: 'code',
+          soapType: 'string',
+          restType: 'string',
+          soapRequired: true,
+          restRequired: true,
+          soapLength: 'Neomezeno',
+          restLength: '3',
+          notes: 'Kód měny'
+        },
+        {
+          soapField: 'CurrencyName',
+          restField: 'name',
+          soapType: 'string',
+          restType: 'string',
+          soapRequired: false,
+          restRequired: true,
+          soapLength: 'Neomezeno',
+          restLength: 'Neomezeno',
+          notes: 'Název měny'
+        }
+      ]
+    },
+    'codelist-product': {
+      title: 'Číselník produktů',
+      description: 'Porovnání struktur pro získání seznamu produktů',
+      soapOperation: 'GetPackProducts',
+      restEndpoint: 'GET /codelist/product',
+      fields: [
+        {
+          soapField: 'ProductCode',
+          restField: 'code',
+          soapType: 'string',
+          restType: 'string',
+          soapRequired: true,
+          restRequired: true,
+          soapLength: 'Neomezeno',
+          restLength: '4',
+          notes: 'Kód produktu'
+        },
+        {
+          soapField: 'ProductName',
+          restField: 'name',
+          soapType: 'string',
+          restType: 'string',
+          soapRequired: false,
+          restRequired: true,
+          soapLength: 'Neomezeno',
+          restLength: 'Neomezeno',
+          notes: 'Název produktu'
+        },
+        {
+          soapField: 'ProductDesc',
+          restField: 'description',
+          soapType: 'string',
+          restType: 'string',
+          soapRequired: false,
+          restRequired: false,
+          soapLength: 'Neomezeno',
+          restLength: 'Neomezeno',
+          notes: 'Popis produktu'
+        }
+      ]
+    },
+    'codelist-country': {
+      title: 'Číselník zemí',
+      description: 'Porovnání struktur pro získání seznamu zemí',
+      soapOperation: 'GetProductCountry',
+      restEndpoint: 'GET /codelist/country',
+      fields: [
+        {
+          soapField: 'CountryCode',
+          restField: 'code',
+          soapType: 'string',
+          restType: 'string',
+          soapRequired: true,
+          restRequired: true,
+          soapLength: 'Neomezeno',
+          restLength: '2',
+          notes: 'Kód země'
+        },
+        {
+          soapField: 'CountryName',
+          restField: 'name',
+          soapType: 'string',
+          restType: 'string',
+          soapRequired: false,
+          restRequired: true,
+          soapLength: 'Neomezeno',
+          restLength: 'Neomezeno',
+          notes: 'Název země'
+        },
+        {
+          soapField: 'IsCODAllowed',
+          restField: 'isCodAllowed',
+          soapType: 'boolean',
+          restType: 'boolean',
+          soapRequired: false,
+          restRequired: true,
+          soapLength: 'N/A',
+          restLength: 'N/A',
+          notes: 'Povolení dobírky'
+        }
+      ]
+    },
+    'order-get': {
+  title: 'Sledování objednávek',
+  description: 'Porovnání struktur pro získání informací o objednávkách',
+  soapOperation: 'GetOrders',
+  restEndpoint: 'GET /order',
+  fields: [
+    {
+      soapField: 'Filter.OrderNumbers[]',
+      restField: 'OrderNumbers[]',
+      soapType: 'string[]',
+      restType: 'string[]',
+      soapRequired: false,
+      restRequired: false,
+      soapLength: 'Max 50 položek',
+      restLength: 'Max 50 položek',
+      notes: 'Čísla objednávek'
+    },
+    {
+      soapField: 'Filter.CustRefs[]',
+      restField: 'CustomerReferences[]',
+      soapType: 'string[]',
+      restType: 'string[]',
+      soapRequired: false,
+      restRequired: false,
+      soapLength: 'Max 50 položek',
+      restLength: 'Max 50 položek',
+      notes: 'Reference zákazníka'
+    },
+    {
+      soapField: 'Filter.DateFrom',
+      restField: 'DateFrom',
+      soapType: 'dateTime',
+      restType: 'dateTime',
+      soapRequired: false,
+      restRequired: false,
+      soapLength: 'N/A',
+      restLength: 'N/A',
+      notes: 'Počáteční datum rozsahu'
+    },
+    {
+      soapField: 'Filter.DateTo',
+      restField: 'DateTo',
+      soapType: 'dateTime',
+      restType: 'dateTime',
+      soapRequired: false,
+      restRequired: false,
+      soapLength: 'N/A',
+      restLength: 'N/A',
+      notes: 'Koncové datum rozsahu'
+    },
+    {
+      soapField: 'Filter.OrderStates',
+      restField: 'OrderStates',
+      soapType: 'enum',
+      restType: 'enum',
+      soapRequired: false,
+      restRequired: false,
+      soapLength: 'N/A',
+      restLength: 'N/A',
+      notes: 'Stavy objednávek'
+    },
+    {
+      soapField: 'OrderNumber',
+      restField: 'orderNumber',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: 'Neomezeno',
+      notes: 'Číslo objednávky'
+    },
+    {
+      soapField: 'CustRef',
+      restField: 'customerReference',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: false,
+      restRequired: false,
+      soapLength: 'Neomezeno',
+      restLength: '40',
+      notes: 'Reference zákazníka'
+    },
+    {
+      soapField: 'OrderType',
+      restField: 'orderType',
+      soapType: 'string',
+      restType: 'enum',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: 'enum',
+      notes: 'Typ objednávky'
+    },
+    {
+      soapField: 'CountPack',
+      restField: 'shipmentCount',
+      soapType: 'int',
+      restType: 'int',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'N/A',
+      restLength: 'N/A',
+      notes: 'Počet balíků'
+    },
+    {
+      soapField: 'Note',
+      restField: 'note',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: false,
+      restRequired: false,
+      soapLength: 'Neomezeno',
+      restLength: '300',
+      notes: 'Poznámka k objednávce'
+    },
+    {
+      soapField: 'CreateDate',
+      restField: 'createdDate',
+      soapType: 'dateTime',
+      restType: 'dateTime',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'N/A',
+      restLength: 'N/A',
+      notes: 'Datum vytvoření objednávky'
+    },
+    {
+      soapField: 'OrderState',
+      restField: 'orderState',
+      soapType: 'string',
+      restType: 'enum',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: 'enum',
+      notes: 'Stav objednávky'
+    },
+    {
+      soapField: 'SendDate',
+      restField: 'sendDate',
+      soapType: 'dateTime',
+      restType: 'dateTime',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'N/A',
+      restLength: 'N/A',
+      notes: 'Datum odeslání'
+    },
+    {
+      soapField: 'SendTimeFrom',
+      restField: 'sendTimeFrom',
+      soapType: 'dateTime',
+      restType: 'dateSpan',
+      soapRequired: false,
+      restRequired: false,
+      soapLength: 'N/A',
+      restLength: 'N/A',
+      notes: 'Čas odeslání od'
+    },
+    {
+      soapField: 'SendTimeTo',
+      restField: 'sendTimeTo',
+      soapType: 'dateTime',
+      restType: 'dateSpan',
+      soapRequired: false,
+      restRequired: false,
+      soapLength: 'N/A',
+      restLength: 'N/A',
+      notes: 'Čas odeslání do'
+    },
+    {
+      soapField: 'Sender.Name',
+      restField: 'sender.name',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: '50',
+      notes: 'Jméno odesílatele'
+    },
+    {
+      soapField: 'Sender.Street',
+      restField: 'sender.street',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: '60',
+      notes: 'Ulice odesílatele'
+    },
+    {
+      soapField: 'Sender.City',
+      restField: 'sender.city',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: '50',
+      notes: 'Město odesílatele'
+    },
+    {
+      soapField: 'Sender.ZipCode',
+      restField: 'sender.zipCode',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: '10',
+      notes: 'PSČ odesílatele'
+    },
+    {
+      soapField: 'Sender.Country',
+      restField: 'sender.country',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: '2+',
+      notes: 'Kód země odesílatele'
+    },
+    {
+      soapField: 'Recipient.Name',
+      restField: 'recipient.name',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: '50',
+      notes: 'Jméno příjemce'
+    },
+    {
+      soapField: 'Recipient.Street',
+      restField: 'recipient.street',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: '60',
+      notes: 'Ulice příjemce'
+    },
+    {
+      soapField: 'Recipient.City',
+      restField: 'recipient.city',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: '50',
+      notes: 'Město příjemce'
+    },
+    {
+      soapField: 'Recipient.ZipCode',
+      restField: 'recipient.zipCode',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: '10',
+      notes: 'PSČ příjemce'
+    },
+    {
+      soapField: 'Recipient.Country',
+      restField: 'recipient.country',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: '2+',
+      notes: 'Kód země příjemce'
+    },
+    {
+      soapField: 'OrderPackages[].PackNumber',
+      restField: 'shipments[].shipmentNumber',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: false,
+      restRequired: false,
+      soapLength: 'Neomezeno',
+      restLength: 'Neomezeno',
+      notes: 'Číslo zásilky'
+    },
+    {
+      soapField: 'OrderPackages[].PackState',
+      restField: 'shipments[].shipmentState',
+      soapType: 'string',
+      restType: 'enum',
+      soapRequired: false,
+      restRequired: false,
+      soapLength: 'Neomezeno',
+      restLength: 'enum',
+      notes: 'Stav zásilky'
     }
+  ]
+},
+'shipment-cancel': {
+  title: 'Zrušení zásilky',
+  description: 'Porovnání struktur pro zrušení zásilky',
+  soapOperation: 'CancelPackage',
+  restEndpoint: 'POST /shipment/{shipmentNumber}/cancel',
+  fields: [
+    {
+      soapField: 'PackNumber',
+      restField: 'shipmentNumber (v URL)',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: 'Neomezeno',
+      notes: 'Číslo zásilky (v REST API je součástí URL)'
+    },
+    {
+      soapField: 'Note',
+      restField: 'note',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: false,
+      restRequired: false,
+      soapLength: 'Neomezeno',
+      restLength: '300',
+      notes: 'Poznámka ke zrušení zásilky'
+    },
+    {
+      soapField: 'ResultStatus',
+      restField: 'HTTP status kód',
+      soapType: 'string',
+      restType: 'integer',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: 'N/A',
+      notes: 'Výsledek operace (v REST API reprezentováno HTTP stavovým kódem)'
+    },
+    {
+      soapField: 'ResultMessage',
+      restField: 'message',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: false,
+      restRequired: false,
+      soapLength: 'Neomezeno',
+      restLength: 'Neomezeno',
+      notes: 'Popis výsledku operace'
+    }
+  ]
+},
+ 
+'shipment-redirect': {
+  title: 'Přesměrování zásilky',
+  description: 'Porovnání struktur pro aktualizaci/přesměrování zásilky',
+  soapOperation: 'UpdatePackage',
+  restEndpoint: 'POST /shipment/{shipmentNumber}/redirect',
+  fields: [
+    {
+      soapField: 'PackNumber',
+      restField: 'shipmentNumber (v URL)',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: 'Neomezeno',
+      notes: 'Číslo zásilky (v REST API je součástí URL)'
+    },
+    {
+      soapField: 'Note',
+      restField: 'note',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: false,
+      restRequired: false,
+      soapLength: 'Neomezeno',
+      restLength: '300',
+      notes: 'Poznámka k přesměrování'
+    },
+    {
+      soapField: 'NewRecipient.Name',
+      restField: 'recipient.name',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: '50',
+      notes: 'Jméno nového příjemce'
+    },
+    {
+      soapField: 'NewRecipient.Name2',
+      restField: 'recipient.name2',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: false,
+      restRequired: false,
+      soapLength: 'Neomezeno',
+      restLength: '50',
+      notes: 'Doplňující jméno nového příjemce'
+    },
+    {
+      soapField: 'NewRecipient.Street',
+      restField: 'recipient.street',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: '60',
+      notes: 'Ulice nového příjemce'
+    },
+    {
+      soapField: 'NewRecipient.City',
+      restField: 'recipient.city',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: '50',
+      notes: 'Město nového příjemce'
+    },
+    {
+      soapField: 'NewRecipient.ZipCode',
+      restField: 'recipient.zipCode',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: '10',
+      notes: 'PSČ nového příjemce'
+    },
+    {
+      soapField: 'NewRecipient.Country',
+      restField: 'recipient.country',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: false,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: '2+',
+      notes: 'Kód země nového příjemce'
+    },
+    {
+      soapField: 'NewRecipient.Contact',
+      restField: 'recipient.contact',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: false,
+      restRequired: false,
+      soapLength: 'Neomezeno',
+      restLength: '50',
+      notes: 'Kontaktní osoba nového příjemce'
+    },
+    {
+      soapField: 'NewRecipient.Phone',
+      restField: 'recipient.phone',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: false,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: '30',
+      notes: 'Telefon nového příjemce'
+    },
+    {
+      soapField: 'NewRecipient.Email',
+      restField: 'recipient.email',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: false,
+      restRequired: false,
+      soapLength: 'Neomezeno',
+      restLength: '50',
+      notes: 'Email nového příjemce'
+    },
+    {
+      soapField: 'SpecDelivery.ParcelShopCode',
+      restField: 'specificDelivery.parcelShopCode',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: false,
+      restRequired: false,
+      soapLength: 'Neomezeno',
+      restLength: '50',
+      notes: 'Kód výdejního místa pro přesměrování'
+    },
+    {
+      soapField: 'ResultStatus',
+      restField: 'HTTP status kód',
+      soapType: 'string',
+      restType: 'integer',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: 'N/A',
+      notes: 'Výsledek operace (v REST API reprezentováno HTTP stavovým kódem)'
+    },
+    {
+      soapField: 'ResultMessage',
+      restField: 'message',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: false,
+      restRequired: false,
+      soapLength: 'Neomezeno',
+      restLength: 'Neomezeno',
+      notes: 'Popis výsledku operace'
+    }
+  ]
+},
+'order-cancel': {
+  title: 'Zrušení objednávky',
+  description: 'Porovnání struktur pro zrušení objednávky',
+  soapOperation: 'CancelOrder',
+  restEndpoint: 'POST /order/cancel',
+  fields: [
+    {
+      soapField: 'OrderNumber',
+      restField: 'orderNumber',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: 'Neomezeno',
+      notes: 'Číslo objednávky'
+    },
+    {
+      soapField: 'CustRef',
+      restField: 'customerReference',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: false,
+      restRequired: false,
+      soapLength: 'Neomezeno',
+      restLength: '40',
+      notes: 'Reference zákazníka'
+    },
+    {
+      soapField: 'Note',
+      restField: 'note',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: false,
+      restRequired: false,
+      soapLength: 'Neomezeno',
+      restLength: '300',
+      notes: 'Poznámka ke zrušení objednávky'
+    },
+    {
+      soapField: 'ResultStatus',
+      restField: 'HTTP status kód',
+      soapType: 'string',
+      restType: 'integer',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: 'N/A',
+      notes: 'Výsledek operace (v REST API reprezentováno HTTP stavovým kódem)'
+    },
+    {
+      soapField: 'ResultMessage',
+      restField: 'message',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: false,
+      restRequired: false,
+      soapLength: 'Neomezeno',
+      restLength: 'Neomezeno',
+      notes: 'Popis výsledku operace'
+    },
+    {
+      soapField: 'OrderStatus',
+      restField: 'orderState',
+      soapType: 'string',
+      restType: 'enum',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: 'enum',
+      notes: 'Stav objednávky po zrušení'
+    }
+  ]
+},
+'auth-login': {
+  title: 'Autentizace',
+  description: 'Porovnání struktur pro autentizaci',
+  soapOperation: 'Login',
+  restEndpoint: 'OAuth2/JWT autentizace',
+  fields: [
+    {
+      soapField: 'Username',
+      restField: 'client_id',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: 'Neomezeno',
+      notes: 'Uživatelské jméno / ID klienta'
+    },
+    {
+      soapField: 'Password',
+      restField: 'client_secret',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: 'Neomezeno',
+      notes: 'Heslo / Tajný klíč klienta'
+    },
+    {
+      soapField: 'N/A',
+      restField: 'grant_type',
+      soapType: 'N/A',
+      restType: 'string',
+      soapRequired: false,
+      restRequired: true,
+      soapLength: 'N/A',
+      restLength: 'Enum',
+      notes: 'Typ přihlášení (např. "client_credentials")'
+    },
+    {
+      soapField: 'LoginTicket',
+      restField: 'access_token',
+      soapType: 'string',
+      restType: 'string',
+      soapRequired: true,
+      restRequired: true,
+      soapLength: 'Neomezeno',
+      restLength: 'Neomezeno',
+      notes: 'Autentizační token pro další požadavky'
+    },
+    {
+      soapField: 'N/A',
+      restField: 'token_type',
+      soapType: 'N/A',
+      restType: 'string',
+      soapRequired: false,
+      restRequired: true,
+      soapLength: 'N/A',
+      restLength: 'Enum',
+      notes: 'Typ tokenu (např. "Bearer")'
+    },
+    {
+      soapField: 'TicketExpiration',
+      restField: 'expires_in',
+      soapType: 'dateTime',
+      restType: 'integer',
+      soapRequired: false,
+      restRequired: true,
+      soapLength: 'N/A',
+      restLength: 'N/A',
+      notes: 'Doba platnosti tokenu v sekundách'
+    }
+  ]
+}
   },
   
   // Obecné rozdíly mezi API
@@ -1127,17 +1970,32 @@ const apiData = {
       restApproach: 'Standardní stránkování pomocí Limit a Offset',
       restExample: '?Limit=100&Offset=0 s hlavičkami X-Paging-*',
       importance: 'medium'
+    },
+    {
+      category: 'Dokumentace',
+      soapApproach: 'WSDL soubor s XML schématem',
+      soapExample: '<wsdl:definitions xmlns:wsdl="...">...</wsdl:definitions>',
+      restApproach: 'OpenAPI (Swagger) specifikace',
+      restExample: '{\n  "openapi": "3.0.1",\n  "info": {\n    "title": "CPL API",\n    "version": "v1"\n  },\n  "paths": { ... }\n}',
+      importance: 'medium'
+    },
+    {
+      category: 'Číselníky',
+      soapApproach: 'Omezený počet samostatných operací pro číselníky',
+      soapExample: 'GetCodCurrency, GetPackProducts, GetProductCountry',
+      restApproach: 'Jednotný přístup ke všem číselníkům přes /codelist/* endpoint',
+      restExample: 'GET /codelist/currency, GET /codelist/product, GET /codelist/country',
+      importance: 'high'
     }
   ]
 };
-
 // Hlavní komponent pro porovnání API
 function ApiComparison() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedFieldMapping, setSelectedFieldMapping] = useState<string | null>(null);
   const [selectedEndpoint, setSelectedEndpoint] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('endpoints'); // endpoints, fields, differences
+  const [activeTab, setActiveTab] = useState('endpoints'); // endpoints, fields, differences, codelist
   const [expandedDifferences, setExpandedDifferences] = useState<number[]>([]);
 
   // Filtrování endpointů podle kategorie a vyhledávání
@@ -1146,7 +2004,14 @@ function ApiComparison() {
     const matchesSearch = searchTerm.trim() === '' ? true : 
       (endpoint.soapOperation.toLowerCase().includes(searchTerm.toLowerCase()) ||
       endpoint.restEndpoint.toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchesCategory && matchesSearch;
+    return matchesCategory && matchesSearch && endpoint.category !== 'codelist';
+  });
+  
+  // Filtrování pouze endpointů z kategorie codelist pro záložku Číselníků
+  const codelistEndpoints = apiData.endpointMappings.filter(endpoint => {
+    return endpoint.category === 'codelist' && (searchTerm.trim() === '' ? true : 
+      (endpoint.soapOperation.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      endpoint.restEndpoint.toLowerCase().includes(searchTerm.toLowerCase())));
   });
   
   // Filtrování polí podle vyhledávání
@@ -1186,7 +2051,7 @@ function ApiComparison() {
     }
   };
 
-  return (
+return (
     <div className="max-w-7xl mx-auto p-4 bg-white rounded-lg shadow">
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Porovnání myAPI (SOAP) vs CPL API (REST)</h1>
       
@@ -1203,6 +2068,12 @@ function ApiComparison() {
           onClick={() => setActiveTab('fields')}
         >
           Porovnání polí
+        </button>
+        <button 
+          className={`px-4 py-2 font-medium ${activeTab === 'codelist' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600 hover:text-blue-600'}`}
+          onClick={() => setActiveTab('codelist')}
+        >
+          Číselníky
         </button>
         <button 
           className={`px-4 py-2 font-medium ${activeTab === 'differences' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600 hover:text-blue-600'}`}
@@ -1227,7 +2098,7 @@ function ApiComparison() {
           />
         </div>
         
-        {(activeTab === 'endpoints' || activeTab === 'fields') && (
+        {/* {(activeTab === 'endpoints' || activeTab === 'fields') && (
           <div className="flex-grow max-w-xs">
             <select
               className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1242,9 +2113,9 @@ function ApiComparison() {
               ))}
             </select>
           </div>
-        )}
+        )} */}
         
-        {activeTab === 'fields' && (
+        {/* {activeTab === 'fields' && (
           <div className="flex-grow max-w-xs">
             <select
               className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1259,33 +2130,33 @@ function ApiComparison() {
               ))}
             </select>
           </div>
-        )}
+        )} */}
       </div>
-      
-      {/* Obsah záložky Mapování endpointů */}
-      {activeTab === 'endpoints' && (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  myAPI (SOAP)
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  CPL API (REST)
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Popis
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Klíčové rozdíly
-                </th>
-              </tr>
-            </thead>
+
+{/* Obsah záložky Mapování endpointů */}
+{activeTab === 'endpoints' && (
+  <div className="overflow-x-auto">
+    <table className="min-w-full divide-y divide-gray-200 table-fixed">
+      <thead className="bg-[#f5f5f5]">
+        <tr>
+          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+            myAPI (SOAP)
+          </th>
+          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+            CPL API (REST)
+          </th>
+          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+            Popis
+          </th>
+          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-3/6">
+            Klíčové rozdíly
+          </th>
+        </tr>
+      </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredEndpoints.length === 0 ? (
                 <tr>
-                  <td colSpan={4}className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
                     Nebyly nalezeny žádné odpovídající endpointy
                   </td>
                 </tr>
@@ -1319,7 +2190,8 @@ function ApiComparison() {
                     <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
                       {apiData.categories.find(c => c.id === endpoint.category)?.description}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                    <td className="px-6 py-4 text-sm text-gray-500 break-words" 
+                      title={endpoint.mainDifferences}>
                       {endpoint.mainDifferences}
                     </td>
                   </tr>
@@ -1330,86 +2202,160 @@ function ApiComparison() {
         </div>
       )}
       
-      {/* Obsah záložky Porovnání polí */}
-      {activeTab === 'fields' && (
-  <div>
-    {!selectedFieldMapping ? (
-      <div className="text-center py-8 text-gray-500">
-        <p>Vyberte operaci pro zobrazení porovnání polí</p>
-      </div>
-    ) : (
-      (() => {
-        const mapping = apiData.fieldMappings[selectedFieldMapping as keyof typeof apiData.fieldMappings];
-
-        return (
-          <>
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-gray-900">{mapping.title}</h2>
-              <p className="text-gray-600">{mapping.description}</p>
-              <div className="mt-2 flex gap-8">
-                <div>
-                  <span className="text-sm font-semibold text-gray-600">SOAP:</span>
-                  <span className="text-sm ml-2 text-gray-800">{mapping.soapOperation}</span>
-                </div>
-                <div>
-                  <span className="text-sm font-semibold text-gray-600">REST:</span>
-                  <span className="text-sm ml-2 text-blue-600">{mapping.restEndpoint}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">myAPI pole</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CPL API pole</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Datový typ</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Povinné</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Max. délka</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Popis</th>
+      {/* Obsah záložky Číselníky */}
+      {activeTab === 'codelist' && (
+        <div className="overflow-x-auto">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Číselníky a referenční data</h2>
+          <p className="mb-6 text-gray-600">Porovnání dostupných číselníků a referenčních dat mezi myAPI (SOAP) a CPL API (REST)</p>
+          
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  myAPI (SOAP)
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  CPL API (REST)
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Popis
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Poznámka
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {codelistEndpoints.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
+                    Nebyly nalezeny žádné odpovídající číselníky
+                  </td>
+                </tr>
+              ) : (
+                codelistEndpoints.map((endpoint, index) => (
+                  <tr 
+                    key={index} 
+                    className={endpoint.soapOperation === 'N/A' ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-gray-50'}
+                    onClick={() => {
+                      // Automaticky nastaví vybranou kategorii pro záložku Porovnání polí
+                      const mappingId = Object.keys(apiData.fieldMappings).find(key => {
+                        const mapping = apiData.fieldMappings[key as keyof typeof apiData.fieldMappings];
+                        return mapping.soapOperation === endpoint.soapOperation || 
+                              mapping.restEndpoint === endpoint.restEndpoint;
+                      });
+                      
+                      if (mappingId) {
+                        setSelectedFieldMapping(mappingId);
+                        setActiveTab('fields');
+                      }
+                    }}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {endpoint.soapOperation === 'N/A' ? (
+                        <span className="text-gray-400 italic">Nepodporováno</span>
+                      ) : (
+                        <div>
+                          <div className="font-semibold">{endpoint.soapOperation}</div>
+                          <div className="text-xs text-gray-500">{endpoint.soapDescription}</div>
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
+                      <div className="font-semibold">{endpoint.restEndpoint}</div>
+                      <div className="text-xs text-gray-500">{endpoint.restDescription}</div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {apiData.categories.find(c => c.id === endpoint.category)?.description}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {endpoint.mainDifferences}
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {getFilteredFields(selectedFieldMapping).length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
-                        Nebyly nalezeny žádné odpovídající pole
-                      </td>
-                    </tr>
-                  ) : (
-                    getFilteredFields(selectedFieldMapping).map((field, index) => {
-                      const diff = highlightDifferences(field);
-                      return (
-                        <tr key={index} className={diff.hasAnyDiff ? 'bg-yellow-50 hover:bg-yellow-100' : 'hover:bg-gray-50'}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{field.soapField}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">{field.restField}</td>
-                          <td className={`px-6 py-4 whitespace-nowrap text-sm ${diff.hasTypeDiff ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
-                            {field.soapType} → {field.restType}
-                          </td>
-                          <td className={`px-6 py-4 whitespace-nowrap text-sm ${diff.hasRequiredDiff ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
-                            {field.soapRequired ? 'Ano' : 'Ne'} → {field.restRequired ? 'Ano' : 'Ne'}
-                          </td>
-                          <td className={`px-6 py-4 whitespace-nowrap text-sm ${diff.hasLengthDiff ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
-                            {field.soapLength} → {field.restLength}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-500">{field.notes}</td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+{/* Obsah záložky Porovnání polí */}
+      {activeTab === 'fields' && (
+        <div>
+          {!selectedFieldMapping ? (
+            <div className="text-center py-8 text-gray-500">
+              <p>Vyberte operaci pro zobrazení porovnání polí</p>
             </div>
-          </>
-        );
-      })()
-    )}
-  </div>
-)}
+          ) : (
+            (() => {
+              const mapping = apiData.fieldMappings[selectedFieldMapping as keyof typeof apiData.fieldMappings];
 
+              return (
+                <>
+                  <div className="mb-6">
+                    <h2 className="text-xl font-bold text-gray-900">{mapping.title}</h2>
+                    <p className="text-gray-600">{mapping.description}</p>
+                    <div className="mt-2 flex gap-8">
+                      <div>
+                        <span className="text-sm font-semibold text-gray-600">SOAP:</span>
+                        <span className="text-sm ml-2 text-gray-800">{mapping.soapOperation}</span>
+                      </div>
+                      <div>
+                        <span className="text-sm font-semibold text-gray-600">REST:</span>
+                        <span className="text-sm ml-2 text-blue-600">{mapping.restEndpoint}</span>
+                      </div>
+                    </div>
+                  </div>
 
-      
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">myAPI pole</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CPL API pole</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Datový typ</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Povinné</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Max. délka</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Popis</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {getFilteredFields(selectedFieldMapping).length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                              Nebyly nalezeny žádné odpovídající pole
+                            </td>
+                          </tr>
+                        ) : (
+                          getFilteredFields(selectedFieldMapping).map((field, index) => {
+                            const diff = highlightDifferences(field);
+                            return (
+                              <tr key={index} className={diff.hasAnyDiff ? 'bg-yellow-50 hover:bg-yellow-100' : 'hover:bg-gray-50'}>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{field.soapField}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">{field.restField}</td>
+                                <td className={`px-6 py-4 whitespace-nowrap text-sm ${diff.hasTypeDiff ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
+                                  {field.soapType} → {field.restType}
+                                </td>
+                                <td className={`px-6 py-4 whitespace-nowrap text-sm ${diff.hasRequiredDiff ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
+                                  {field.soapRequired ? 'Ano' : 'Ne'} → {field.restRequired ? 'Ano' : 'Ne'}
+                                </td>
+                                <td className={`px-6 py-4 whitespace-nowrap text-sm ${diff.hasLengthDiff ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
+                                  {field.soapLength} → {field.restLength}
+                                </td>
+                                <td className="px-6 py-4 text-sm text-gray-500">{field.notes}</td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              );
+            })()
+          )}
+        </div>
+      )}
+
       {/* Obsah záložky Obecné rozdíly */}
       {activeTab === 'differences' && (
         <div className="space-y-6">
@@ -1523,8 +2469,7 @@ function ApiComparison() {
           </div>
         </div>
       )}
-      
-      {/* Vysvětlivky pro porovnání polí */}
+{/* Vysvětlivky pro porovnání polí */}
       {activeTab === 'fields' && selectedFieldMapping && (
         <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
           <div className="flex items-center">
