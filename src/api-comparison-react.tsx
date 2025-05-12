@@ -430,86 +430,82 @@ generalDifferences: [
 apiExamples: [
   {
     id: 'multi-package-shipment', 
-    title: 'Více zásilek s individuálními váhami a čísly (nelze jednoduše konvertovat)', 
+    title: 'Více zásilek s individuálními váhami a čísly', 
     description: 'Komplexní příklad se sadou zásilek, kde každá zásilka má vlastní váhu a vlastní jedinečná externí čísla', 
     endpoint: '/shipment/batch', 
     method: 'POST',
     requestBody: `{
   "returnChannel": {
-    "type": "Email",                    // Typ návratového kanálu
-    "address": "jfnukal@elinkx.cz"      // Adresa pro návratovou komunikaci
+    "type": "Email",
+    "address": "jfnukal@elinkx.cz"
   },
   "labelSettings": {
-    "format": "ZPL",                    // Formát štítku (zde ZPL pro tiskárny štítků)
-    "dpi": 300,                         // Rozlišení tisku
+    "format": "ZPL",
+    "dpi": 300,
     "completeLabelSettings": {
-      "isCompleteLabelRequested": true,  // Požadavek na kompletní štítek
-      "pageSize": "A4",                  // Velikost papíru
-      "position": 1                      // Pozice na stránce
+      "isCompleteLabelRequested": true,
+      "pageSize": "A4",
+      "position": 1
     }
   },
   "shipments": [
     {
-      "referenceId": "Reference03",      // Hlavní zákaznická reference zásilky
-      "productType": "CONN",             // Typ produktu (CONN = Slovensko)
-      "note": "Poznamka",                // Poznámka ke všem zásilkám
-      "integratorId": "422609",          // ID integrátora
+      "referenceId": "Reference03",
+      "productType": "CONN",
+      "note": "Poznamka",
+      "integratorId": "422609",
       
-      // === KLÍČOVÁ ČÁST PRO KONVERZI ===
-      // Definice sady zásilek s individuálními váhami a externími čísly pro každou zásilku
       "shipmentSet": {
-        "numberOfShipments": 3,          // Počet zásilek v sadě
+        "numberOfShipments": 3,
         "shipmentSetItems": [
           {
-            "weighedShipmentInfo": {     // První zásilka s vlastní váhou
-              "weight": 1.5              // Váha 1.5 kg
+            "weighedShipmentInfo": {
+              "weight": 1.5
             },
-            "externalNumbers": [         // Externí čísla specifická pro PRVNÍ zásilku v sadě
+            "externalNumbers": [
               { 
                 "externalNumber": "Ext_Box1_CUST", 
-                "code": "CUST"           // Zákaznické číslo pro první zásilku
+                "code": "CUST"
               }
             ]
           },
           {
-            "weighedShipmentInfo": {     // Druhá zásilka s vlastní váhou
-              "weight": 3.2              // Váha 3.2 kg
+            "weighedShipmentInfo": {
+              "weight": 3.2
             },
-            "externalNumbers": [         // Externí čísla specifická pro DRUHOU zásilku v sadě
+            "externalNumbers": [
               { 
                 "externalNumber": "Ext_Box2_CUST", 
-                "code": "CUST"           // Zákaznické číslo pro druhou zásilku  
+                "code": "CUST"
               },
               { 
                 "externalNumber": "B2CO_000222", 
-                "code": "B2CO"           // B2C číslo pro druhou zásilku
+                "code": "B2CO"
               }
             ]
           },
           {
-            "weighedShipmentInfo": {     // Třetí zásilka s vlastní váhou
-              "weight": 5.8              // Váha 5.8 kg
+            "weighedShipmentInfo": {
+              "weight": 5.8
             },
-            "externalNumbers": [         // Externí čísla specifická pro TŘETÍ zásilku v sadě
+            "externalNumbers": [
               { 
                 "externalNumber": "Ext_Box3_CUST", 
-                "code": "CUST"           // Zákaznické číslo pro třetí zásilku
+                "code": "CUST"
               },
               { 
                 "externalNumber": "B2CO_000333", 
-                "code": "B2CO"           // B2C číslo pro třetí zásilku
+                "code": "B2CO"
               },
               { 
                 "externalNumber": "ESHOP_999", 
-                "code": "VARS"           // Číslo varianty pro třetí zásilku (kód VARS z číselníku)
+                "code": "VARS"
               }
             ]
           }
         ]
       },
-      // === KONEC KLÍČOVÉ ČÁSTI ===
       
-      // Údaje o odesílateli - společné pro všechny zásilky
       "sender": {
         "name": "Name sender",
         "street": "Street sender 99",
@@ -521,7 +517,6 @@ apiExamples: [
         "email": "test@test.cz"
       },
       
-      // Údaje o příjemci - společné pro všechny zásilky
       "recipient": {
         "name": "Recipient Gunter",
         "street": "Janosika 22",
@@ -533,13 +528,11 @@ apiExamples: [
         "email": "recipient@example.sk"
       },
       
-      // Pojištění zásilky
       "insurance": {
         "insurancePrice": "156000",
         "insuranceCurrency": "CZK"
       },
       
-      // Údaje pro zpětné doručení
       "dormant": {
         "note": "Poznamka return",
         "depot": "07",
@@ -555,9 +548,82 @@ apiExamples: [
         },
         "services": [
           {
-            "code": "PUBC"               // Služba pro zpětné doručení
+            "code": "PUBC"
           }
         ]
+      }
+    }
+  ]
+}`,
+    complexity: 'complex', 
+    category: 'Zásilky'
+  },
+  {
+    id: 'individual-insurance', 
+    title: 'Zásilky s individuálním pojištěním', 
+    description: 'Příklad sady zásilek, kde každá zásilka má vlastní váhu a vlastní pojistnou částku', 
+    endpoint: '/shipment/batch', 
+    method: 'POST',
+    requestBody: `{
+  "returnChannel": {
+    "type": "Email",
+    "address": "mkaisersat@ppl.cz"
+  },
+  "labelSettings": {
+    "format": "Pdf",
+    "dpi": 600,
+    "completeLabelSettings": {
+      "isCompleteLabelRequested": true,
+      "pageSize": "A4",
+      "position": 2
+    }
+  },
+  "shipments": [
+    {
+      "referenceId": "123456a4",
+      "productType": "CONN",
+      "note": "poznamka",
+      "depot": "07",
+      "shipmentSet": {
+        "numberOfShipments": 2,
+        "shipmentSetItems": [
+          {
+            "weighedShipmentInfo": {
+              "weight": 1
+            },
+            "insurance": {
+              "insurancePrice": 100000.01,
+              "insuranceCurrency": "CZK"
+            }
+          },
+          {
+            "weighedShipmentInfo": {
+              "weight": 2
+            },
+            "insurance": {
+              "insurancePrice": 200000,
+              "insuranceCurrency": "CZK"
+            }
+          }
+        ]
+      },
+      "sender": {
+        "name": "Pavel Peknica",
+        "street": "Vysni Lhoty 222",
+        "city": "Dobrá",
+        "zipCode": "73951",
+        "country": "CZ",
+        "phone": "123654789",
+        "email": "pavel@peca.cz"
+      },
+      "recipient": {
+        "name": "Lukáš Richter",
+        "street": "Nové Dvory-Podhůří 3844",
+        "city": "Berlin",
+        "zipCode": "10112",
+        "country": "DE",
+        "phone": "369852147",
+        "email": "pavel@peca.cz"
       }
     }
   ]
@@ -2191,117 +2257,45 @@ return (
 
        {/* Obsah záložky Příklady */}
        {activeTab === 'examples' && (
-          <div>
-            {/* Zobrazení příkladů (upraveno) */}
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Příklady API s limity konverze</h2>
-            <p className="mb-6 text-sm text-gray-600">Ukázky složitějších struktur a specifik, které demonstrují výzvy při konverzi mezi SOAP a REST.</p>
-            <div className="space-y-6">
-                {apiData.apiExamples.map((example) => (
-                  <div key={example.id} className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 bg-white">
-                      <div className="px-4 py-4">
-                        <div className="flex justify-between">
-                            <span className="text-xs font-medium bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">{example.category}</span>
-                            <span className="text-xs font-medium bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">Složitost: {example.complexity === 'complex' ? 'Vysoká' : example.complexity === 'medium' ? 'Střední' : 'Nízká'}</span>
-                        </div>
-                        <h3 className="mt-2 text-base font-semibold text-gray-900">{example.title}</h3>
-                        <p className="mt-1 text-xs text-gray-500">{example.description}</p>
-                        {example.endpoint && (
-                          <div className="mt-2 flex items-center text-xs text-blue-600 font-mono">
-                            <span className={`font-bold mr-1 ${example.method === 'POST' ? 'text-green-700' : 'text-blue-700'}`}>{example.method}</span>
-                            <span>{example.endpoint}</span>
-                          </div>
-                        )}
-                      </div>
-                      {example.requestBody && (
-                        <div className="px-4 pb-4">
-                            <div className="relative group/copy">
-                              <pre className="text-[11px] bg-gray-800 text-white p-3 rounded overflow-x-auto font-mono max-h-96">{example.requestBody}</pre>
-                              <button onClick={() => copyToClipboard(example.requestBody, `ex-${example.id}`)}
-                                  className={`absolute top-1 right-1 ${copiedButtonId === `ex-${example.id}` ? 'bg-green-600 text-white' : 'bg-gray-600 text-gray-300 hover:bg-gray-500 hover:text-white'} p-1 rounded text-[10px] leading-none opacity-0 group-hover/copy:opacity-100 transition-opacity`}
-                                  title="Kopírovat kód"
-                              >
-                                  {copiedButtonId === `ex-${example.id}` ? <Check size={12}/> : <Copy size={12}/>}
-                              </button>
-                            </div>
-                            
-                            {/* Pro příklady, které přímo zobrazují limity konverze */}
-                              {example.id === 'multi-package-shipment' && (
-                                <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700">
-                                  <strong className="block text-sm mb-1">Problém konverze mezi SOAP a REST:</strong>
-                                  <p>Tento příklad ukazuje nejnáročnější část konverze mezi SOAP a REST API:</p>
-                                  <ul className="list-disc pl-5 mt-1 space-y-1">
-                                    <li>Každá zásilka v sadě má <strong>vlastní individuální váhu</strong> (1.5 kg, 3.2 kg, 5.8 kg)</li>
-                                    <li>Každá zásilka má <strong>vlastní jedinečná externí čísla</strong> a různý počet těchto čísel</li>
-                                    <li>První zásilka má 1 externí číslo, druhá má 2 čísla, třetí má dokonce 3 externí čísla</li>
-                                    <li>Externí čísla jsou pouze na úrovni jednotlivých položek v sadě, nikoli na úrovni celé zásilky</li>
-                                  </ul>
-                                  <p className="mt-2">V SOAP API by tato struktura vypadala přibližně takto:</p>
-                                  <pre className="bg-gray-800 text-white p-2 rounded text-[10px] mt-1">
-                              {`<!-- SOAP API struktura -->
-                              <PackageSet>
-                                <PackagesInSet>3</PackagesInSet>
-                              </PackageSet>
-
-                              <PackageInSet>
-                                <PackNumber>100001</PackNumber>
-                                <PackPosition>1</PackPosition>
-                                <Weight>1.5</Weight>
-                                <PackagesExtNums>
-                                  <ExtNumber>Ext_Box1_CUST</ExtNumber>
-                                  <ExtNumberType>CUST</ExtNumberType>
-                                </PackagesExtNums>
-                              </PackageInSet>
-
-                              <PackageInSet>
-                                <PackNumber>100002</PackNumber>
-                                <PackPosition>2</PackPosition>
-                                <Weight>3.2</Weight>
-                                <PackagesExtNums>
-                                  <ExtNumber>Ext_Box2_CUST</ExtNumber>
-                                  <ExtNumberType>CUST</ExtNumberType>
-                                </PackagesExtNums>
-                                <PackagesExtNums>
-                                  <ExtNumber>B2CO_000222</ExtNumber>
-                                  <ExtNumberType>B2CO</ExtNumberType>
-                                </PackagesExtNums>
-                              </PackageInSet>
-
-                              <PackageInSet>
-                                <PackNumber>100003</PackNumber>
-                                <PackPosition>3</PackPosition>
-                                <Weight>5.8</Weight>
-                                <PackagesExtNums>
-                                  <ExtNumber>Ext_Box3_CUST</ExtNumber>
-                                  <ExtNumberType>CUST</ExtNumberType>
-                                </PackagesExtNums>
-                                <PackagesExtNums>
-                                  <ExtNumber>B2CO_000333</ExtNumber>
-                                  <ExtNumberType>B2CO</ExtNumberType>
-                                </PackagesExtNums>
-                                <PackagesExtNums>
-                                  <ExtNumber>ESHOP_999</ExtNumber>
-                                  <ExtNumberType>VARS</ExtNumberType>
-                                </PackagesExtNums>
-                              </PackageInSet>`}
-                                  </pre>
-                                  <p className="mt-2">Problém konverze:</p>
-                                  <ol className="list-decimal pl-5 mt-1 space-y-1">
-                                    <li>REST API používá vnořený objekt <code>weighedShipmentInfo</code> pro váhu a pole <code>externalNumbers</code> vnořené na úrovni každé zásilky</li>
-                                    <li>SOAP API používá elementy <code>PackageInSet</code> a vnořené <code>PackagesExtNums</code> s jinou strukturou</li>
-                                    <li>SOAP API má odlišný způsob definice externích čísel (samostatné elementy <code>ExtNumber</code> a <code>ExtNumberType</code>)</li>
-                                    <li>Kódy externích čísel musí odpovídat platnému číselníku (např. CUST, B2CO, VARS)</li>
-                                    <li>Automatická konverze vyžaduje složitou transformaci, která překračuje možnosti jednoduchého mapování 1:1</li>
-                                  </ol>
-                                  <p className="mt-2 text-xs italic">Poznámka: Na úrovni celé zásilky není definováno žádné externí číslo - kdyby bylo, přepsalo by externí čísla definovaná na úrovni jednotlivých zásilek v sadě.</p>
-                                </div>
-)}
+  <div>
+     {/* Zobrazení příkladů (upraveno) */}
+     <h2 className="text-xl font-bold text-gray-900 mb-2">Příklady komplexních struktur API</h2>
+     <p className="mb-6 text-sm text-gray-600">Ukázky složitějších REST API struktur, které je obtížné konvertovat z/do SOAP formátu.</p>
+     <div className="space-y-6">
+        {apiData.apiExamples.map((example) => (
+           <div key={example.id} className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 bg-white">
+              <div className="px-4 py-4">
+                 <div className="flex justify-between">
+                    <span className="text-xs font-medium bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">{example.category}</span>
+                    <span className="text-xs font-medium bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">Složitost: {example.complexity === 'complex' ? 'Vysoká' : example.complexity === 'medium' ? 'Střední' : 'Nízká'}</span>
+                 </div>
+                 <h3 className="mt-2 text-base font-semibold text-gray-900">{example.title}</h3>
+                 <p className="mt-1 text-xs text-gray-500">{example.description}</p>
+                 {example.endpoint && (
+                   <div className="mt-2 flex items-center text-xs text-blue-600 font-mono">
+                     <span className={`font-bold mr-1 ${example.method === 'POST' ? 'text-green-700' : 'text-blue-700'}`}>{example.method}</span>
+                     <span>{example.endpoint}</span>
+                   </div>
+                 )}
               </div>
-                      )}
-                  </div>
-                ))}
-            </div>
-          </div>
-        )}
+              {example.requestBody && (
+                <div className="px-4 pb-4">
+                     <div className="relative group/copy">
+                       <pre className="text-[11px] bg-gray-800 text-white p-3 rounded overflow-x-auto font-mono max-h-96">{example.requestBody}</pre>
+                       <button onClick={() => copyToClipboard(example.requestBody, `ex-${example.id}`)}
+                          className={`absolute top-1 right-1 ${copiedButtonId === `ex-${example.id}` ? 'bg-green-600 text-white' : 'bg-gray-600 text-gray-300 hover:bg-gray-500 hover:text-white'} p-1 rounded text-[10px] leading-none opacity-0 group-hover/copy:opacity-100 transition-opacity`}
+                          title="Kopírovat kód"
+                       >
+                          {copiedButtonId === `ex-${example.id}` ? <Check size={12}/> : <Copy size={12}/>}
+                       </button>
+                     </div>
+                </div>
+              )}
+           </div>
+        ))}
+     </div>
+  </div>
+)}
 
        {/* Obsah záložky FAQ */}
        {activeTab === 'faq' && (
@@ -2332,114 +2326,230 @@ return (
           </div>
        )}
 
-      {/* Obsah záložky Převodník SOAP na REST */}
-      {activeTab === 'converter' && (
-        <div className="mt-2"> {/* Menší horní margin */}
-           <h2 className="text-xl font-bold text-gray-900 mb-2">Experimentální SOAP → REST Převodník</h2>
-           <p className="mb-4 text-sm text-gray-600">
-             Vložte SOAP XML pro <code className="code">CreatePackages</code> nebo <code className="code">CreateOrders</code> a pokuste se jej transformovat na REST JSON.
-             <br/> <span className="text-xs text-orange-600">Upozornění: Jedná se o zjednodušený převodník pro demonstrační účely. Výsledek nemusí být vždy 100% přesný nebo kompletní.</span>
-           </p>
+    {/* Obsah záložky Převodník SOAP na REST */}
+          {activeTab === 'converter' && (
+            <div className="mt-2">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Experimentální SOAP → REST Převodník</h2>
+              
+              {/* Tabulka podporovaných operací */}
+              <div className="mb-6 bg-white border border-gray-200 rounded-lg shadow-sm">
+                <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                  <h3 className="text-sm font-semibold text-gray-700">Podporované operace</h3>
+                </div>
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SOAP Operace</th>
+                      <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">REST Endpoint</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 text-sm">
+                    <tr id="converter-CreatePackages" className={`${restOutput?.operation === 'CreatePackages' ? 'bg-green-50' : ''}`}>
+                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs font-medium">
+                        {restOutput?.operation === 'CreatePackages' ? <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1.5"></span> : <span className="inline-block w-2 h-2 bg-gray-300 rounded-full mr-1.5"></span>}
+                        CreatePackages
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs text-blue-600">POST /shipment/batch</td>
+                    </tr>
+                    <tr id="converter-CreateOrders" className={`${restOutput?.operation === 'CreateOrders' ? 'bg-green-50' : ''}`}>
+                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs font-medium">
+                        {restOutput?.operation === 'CreateOrders' ? <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1.5"></span> : <span className="inline-block w-2 h-2 bg-gray-300 rounded-full mr-1.5"></span>}
+                        CreateOrders
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs text-blue-600">POST /order/batch</td>
+                    </tr>
+                    <tr id="converter-CreatePickupOrders" className={`${restOutput?.operation === 'CreatePickupOrders' ? 'bg-green-50' : ''}`}>
+                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs font-medium">
+                        {restOutput?.operation === 'CreatePickupOrders' ? <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1.5"></span> : <span className="inline-block w-2 h-2 bg-gray-300 rounded-full mr-1.5"></span>}
+                        CreatePickupOrders
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs text-blue-600">POST /order/batch</td>
+                    </tr>
+                    <tr id="converter-GetPackages" className={`${restOutput?.operation === 'GetPackages' ? 'bg-green-50' : ''}`}>
+                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs font-medium">
+                        {restOutput?.operation === 'GetPackages' ? <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1.5"></span> : <span className="inline-block w-2 h-2 bg-gray-300 rounded-full mr-1.5"></span>}
+                        GetPackages
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs text-blue-600">GET /shipment</td>
+                    </tr>
+                    <tr id="converter-CancelPackage" className={`${restOutput?.operation === 'CancelPackage' ? 'bg-green-50' : ''}`}>
+                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs font-medium">
+                        {restOutput?.operation === 'CancelPackage' ? <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1.5"></span> : <span className="inline-block w-2 h-2 bg-gray-300 rounded-full mr-1.5"></span>}
+                        CancelPackage
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs text-blue-600">POST /shipment/{'{shipmentNumber}'}/cancel</td>
+                    </tr>
+                    <tr id="converter-UpdatePackage" className={`${restOutput?.operation === 'UpdatePackage' ? 'bg-green-50' : ''}`}>
+                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs font-medium">
+                        {restOutput?.operation === 'UpdatePackage' ? <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1.5"></span> : <span className="inline-block w-2 h-2 bg-gray-300 rounded-full mr-1.5"></span>}
+                        UpdatePackage
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs text-blue-600">POST /shipment/{'{shipmentNumber}'}/redirect</td>
+                    </tr>
+                    <tr id="converter-GetOrders" className={`${restOutput?.operation === 'GetOrders' ? 'bg-green-50' : ''}`}>
+                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs font-medium">
+                        {restOutput?.operation === 'GetOrders' ? <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1.5"></span> : <span className="inline-block w-2 h-2 bg-gray-300 rounded-full mr-1.5"></span>}
+                        GetOrders
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs text-blue-600">GET /order</td>
+                    </tr>
+                    <tr id="converter-CancelOrder" className={`${restOutput?.operation === 'CancelOrder' ? 'bg-green-50' : ''}`}>
+                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs font-medium">
+                        {restOutput?.operation === 'CancelOrder' ? <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1.5"></span> : <span className="inline-block w-2 h-2 bg-gray-300 rounded-full mr-1.5"></span>}
+                        CancelOrder
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs text-blue-600">POST /order/cancel</td>
+                    </tr>
+                    <tr id="converter-GetParcelShops" className={`${restOutput?.operation === 'GetParcelShops' ? 'bg-green-50' : ''}`}>
+                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs font-medium">
+                        {restOutput?.operation === 'GetParcelShops' ? <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1.5"></span> : <span className="inline-block w-2 h-2 bg-gray-300 rounded-full mr-1.5"></span>}
+                        GetParcelShops
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs text-blue-600">GET /accessPoint</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
 
-           {/* Grid layout pro vstup a výstup [cite: 153] */}
-           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-                {/* Levá strana: Vstup SOAP */}
-                <div className="flex flex-col">
-                    <div className="flex justify-between items-center mb-2">
-                        <h3 className="text-base font-semibold text-gray-800">SOAP XML Požadavek</h3>
-                        <button className="btn-text" onClick={resetConverterForm} disabled={!soapInput && !restOutput}>Resetovat</button>
+              {/* Nastavení převodníku */}
+              <div className="mb-6 bg-white border border-gray-200 rounded-lg">
+                <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                  <h3 className="text-sm font-semibold text-gray-700">Nastavení převodníku</h3>
+                </div>
+                <div className="p-4">
+                  <div className="flex flex-col space-y-4">
+                    <div>
+                      <label htmlFor="baseUrlInput" className="block text-sm font-medium text-gray-700 mb-1">Základní URL pro CPL REST API:</label>
+                      <input 
+                        id="baseUrlInput" 
+                        type="text" 
+                        className="input w-full p-2 border border-gray-300 rounded-md text-sm" 
+                        value={converterBaseUrl} 
+                        onChange={(e) => setConverterBaseUrl(e.target.value)} 
+                      />
                     </div>
-                    <textarea
-                        className="textarea flex-grow min-h-[300px] lg:min-h-[450px]" // Flex-grow a min-height
-                        value={soapInput}
-                        onChange={(e) => setSoapInput(e.target.value)}
-                        placeholder="Vložte <CreatePackages> nebo <CreateOrders> SOAP XML..."
-                        spellCheck={false}
-                    />
-                     <button className="btn btn-primary mt-4 w-full" onClick={handleTransform} disabled={!soapInput.trim()}>
-                        <ArrowRight size={18} className="mr-1"/> Transformovat na REST
+                    <div className="bg-orange-50 border border-orange-200 rounded-md p-3 text-xs text-orange-700">
+                      <strong>Upozornění:</strong> Jedná se o zjednodušený převodník pro demonstrační účely. Výsledek nemusí být 100% přesný nebo kompletní, zejména u složitějších struktur.
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Stav konverze - zobrazí se pouze při úspěšné konverzi */}
+              {restOutput && restOutput.success && (
+                <div className="mb-6 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="px-4 py-3 flex items-center">
+                    <Check size={20} className="mr-3 text-green-600 flex-shrink-0"/>
+                    <div>
+                      <h3 className="text-sm font-semibold text-green-800">Konverze úspěšná</h3>
+                      <p className="text-xs text-green-700 mt-0.5">
+                        SOAP operace <span className="font-mono font-medium">{restOutput.operation}</span> byla převedena na REST
+                      </p>
+                    </div>
+                  </div>
+                  <div className="border-t border-green-200 px-4 py-3">
+                    <div className="flex flex-col space-y-1">
+                      <div className="flex items-center">
+                        <span className="text-xs font-medium text-gray-700 w-16">Metoda:</span>
+                        <span className={`text-xs font-mono font-semibold ${restOutput.method === 'POST' ? 'text-green-600' : 'text-blue-600'}`}>
+                          {restOutput.method}
+                        </span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="text-xs font-medium text-gray-700 w-16">Endpoint:</span>
+                        <span className="text-xs font-mono overflow-x-auto flex-grow">{converterBaseUrl}{restOutput.path}</span>
+                      </div>
+                    </div>
+                    <button 
+                      className="mt-2 text-xs flex items-center text-green-700 hover:text-green-900 bg-green-100 hover:bg-green-200 px-2 py-1 rounded" 
+                      onClick={() => copyToClipboard(`${restOutput.method} ${converterBaseUrl}${restOutput.path}`, 'rest-url')}
+                    >
+                      {copiedButtonId === 'rest-url' ? <Check size={14} className="mr-1"/> : <Copy size={14} className="mr-1"/>}
+                      Kopírovat celý endpoint
                     </button>
-                     {/* Input pro Base URL [cite: 158] */}
-                     <div className="mt-4">
-                        <label htmlFor="baseUrlInput" className="block text-xs font-medium text-gray-600 mb-1">Základní URL pro CPL REST API:</label>
-                        <input id="baseUrlInput" type="text" className="input w-full text-xs" value={converterBaseUrl} onChange={(e) => setConverterBaseUrl(e.target.value)} />
-                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Hlavní část převodníku - dva sloupce */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Levá strana: Vstup SOAP */}
+                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 flex justify-between items-center">
+                    <h3 className="text-sm font-semibold text-gray-700">SOAP XML Požadavek</h3>
+                    <button 
+                      className="text-xs text-gray-500 hover:text-gray-700" 
+                      onClick={resetConverterForm} 
+                      disabled={!soapInput && !restOutput}
+                    >
+                      Resetovat
+                    </button>
+                  </div>
+                  <div className="p-4">
+                    <textarea
+                      className="w-full min-h-[350px] p-3 font-mono text-sm bg-gray-50 border border-gray-300 rounded-md resize-none"
+                      value={soapInput}
+                      onChange={(e) => setSoapInput(e.target.value)}
+                      placeholder="Vložte SOAP XML požadavek..."
+                      spellCheck={false}
+                    />
+                    <button 
+                      className="mt-4 w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md flex items-center justify-center text-sm font-medium" 
+                      onClick={handleTransform} 
+                      disabled={!soapInput.trim()}
+                    >
+                      <ArrowRight size={18} className="mr-1"/> Transformovat na REST
+                    </button>
+                  </div>
                 </div>
 
                 {/* Pravá strana: Výstup REST */}
-                <div className="flex flex-col">
-                    <h3 className="text-base font-semibold text-gray-800 mb-2">REST Ekvivalent</h3>
+                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                    <h3 className="text-sm font-semibold text-gray-700">REST Ekvivalent</h3>
+                  </div>
+                  <div className="p-4">
                     {/* Podmíněné renderování výstupu */}
                     {restOutput === null ? (
-                        <div className="output-placeholder flex-grow">Transformovaný REST JSON výsledek se zobrazí zde.</div>
-                    ) : !restOutput.success ? (
-                        <div className="output-error flex-grow"><AlertCircle size={18} className="mr-2 flex-shrink-0"/> Chyba: {restOutput.error}</div>
-                    ) : (
-                        <div className="output-success flex-grow">
-                            {/* Endpoint URL */}
-                            <div className="output-section">
-                                <div className="flex justify-between items-center mb-1">
-                                    <h4 className="output-title">Endpoint:</h4>
-                                    <button className="btn-copy" onClick={() => copyToClipboard(`${restOutput.method} ${converterBaseUrl}${restOutput.path}`, 'rest-url')}>
-                                       {copiedButtonId === 'rest-url' ? <Check size={14}/> : <Copy size={14}/>} <span className="ml-1">Kopírovat URL</span>
-                                    </button>
-                                </div>
-                                <div className="output-code-block flex items-center text-xs break-all">
-                                   <span className={`font-semibold mr-2 ${restOutput.method === 'POST' ? 'text-green-600' : 'text-blue-600'}`}>{restOutput.method}</span>
-                                   <span className="text-gray-700">{converterBaseUrl}{restOutput.path}</span>
-                                </div>
-                            </div>
-                            {/* Body JSON */}
-                            <div className="output-section flex-1 flex flex-col min-h-0"> {/* flex-1 a min-h-0 pro správné scrollování */}
-                                 <div className="flex justify-between items-center mb-1 flex-shrink-0">
-                                     <h4 className="output-title">Body (JSON):</h4>
-                                     <button className="btn-copy" onClick={() => copyToClipboard(JSON.stringify(restOutput.body, null, 2), 'rest-body')}>
-                                        {copiedButtonId === 'rest-body' ? <Check size={14}/> : <Copy size={14}/>} <span className="ml-1">Kopírovat JSON</span>
-                                     </button>
-                                 </div>
-                                 {/* Skrolovatelný pre blok */}
-                                 <div className="flex-1 overflow-auto border border-gray-200 rounded bg-gray-50">
-                                     <pre className="output-code-block text-[11px] bg-transparent border-none">{JSON.stringify(restOutput.body, null, 2)}</pre>
-                                 </div>
-                            </div>
-                             {/* Info o transformaci */}
-                            <div className="output-info mt-2 flex-shrink-0">
-                                <Check size={16} className="mr-1 text-green-600 flex-shrink-0"/>
-                                SOAP operace <code className="code">{restOutput.operation}</code> byla úspěšně transformována.
-                           </div>
+                      <div className="flex items-center justify-center bg-gray-50 border-2 border-dashed border-gray-300 rounded-md p-6 min-h-[350px]">
+                        <div className="text-center text-gray-500">
+                          <p className="text-sm">Transformovaný REST JSON výsledek se zobrazí zde.</p>
+                          <p className="text-xs mt-2">Vložte SOAP XML a klikněte na tlačítko "Transformovat".</p>
                         </div>
+                      </div>
+                    ) : !restOutput.success ? (
+                      <div className="flex items-start bg-red-50 border border-red-200 rounded-md p-4 min-h-[350px]">
+                        <AlertCircle size={18} className="mr-2 flex-shrink-0 text-red-600"/> 
+                        <div>
+                          <p className="text-sm font-medium text-red-800">Chyba při konverzi</p>
+                          <p className="text-xs text-red-700 mt-1">{restOutput.error}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="min-h-[350px] flex flex-col">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-xs font-medium text-gray-700">Body (JSON):</h4>
+                          <button 
+                            className="text-xs flex items-center text-blue-600 hover:text-blue-800" 
+                            onClick={() => copyToClipboard(JSON.stringify(restOutput.body, null, 2), 'rest-body')}
+                          >
+                            {copiedButtonId === 'rest-body' ? <Check size={14} className="mr-1"/> : <Copy size={14} className="mr-1"/>}
+                            Kopírovat JSON
+                          </button>
+                        </div>
+                        {/* Skrolovatelný pre blok */}
+                        <div className="flex-grow border border-gray-200 rounded-md bg-gray-50 overflow-auto">
+                          <pre className="p-3 text-xs font-mono">
+                            {JSON.stringify(restOutput.body, null, 2)}
+                          </pre>
+                        </div>
+                      </div>
                     )}
+                  </div>
                 </div>
-           </div>
-
-           {/* Styly specifické pro převodník (z file 1) */}
-           <style>{`
-             .textarea { padding: 0.75rem; font-family: monospace; font-size: 0.8rem; line-height: 1.4; background-color: #F9FAFB; border: 1px solid #D1D5DB; border-radius: 0.375rem; outline: none; resize: vertical; }
-             .textarea:focus { border-color: #3B82F6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3); }
-             .btn { display: inline-flex; align-items: center; justify-content: center; padding: 0.6rem 1rem; font-weight: 500; border-radius: 0.375rem; cursor: pointer; transition: background-color 0.2s; border: none; font-size: 0.875rem; }
-             .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-             .btn-primary { background-color: #2563EB; color: white; }
-             .btn-primary:hover:not(:disabled) { background-color: #1D4ED8; }
-             .btn-text { background: none; border: none; color: #6B7280; cursor: pointer; font-size: 0.8rem; padding: 0.25rem; }
-             .btn-text:hover:not(:disabled) { color: #1F2937; text-decoration: underline; }
-             .btn-text:disabled { color: #D1D5DB; cursor: not-allowed; }
-             .input { padding: 0.5rem 0.75rem; border: 1px solid #D1D5DB; border-radius: 0.375rem; font-size: 0.875rem; outline: none; }
-             .input:focus { border-color: #3B82F6; box-shadow: 0 0 0 1px #3B82F6; }
-             .output-placeholder { display: flex; align-items: center; justify-content: center; background-color: #F9FAFB; border: 2px dashed #E5E7EB; border-radius: 0.375rem; color: #6B7280; text-align: center; padding: 2rem; font-size: 0.875rem; }
-             .output-error { display: flex; align-items: flex-start; background-color: #FEF2F2; border: 1px solid #FCA5A5; border-radius: 0.375rem; padding: 1rem; color: #B91C1C; font-size: 0.875rem; overflow-wrap: break-word; }
-             .output-success { border: 1px solid #D1D5DB; border-radius: 0.375rem; overflow: hidden; display: flex; flex-direction: column; background-color: #fff; }
-             .output-section { padding: 0.75rem; }
-             .output-section:not(:last-child) { border-bottom: 1px solid #E5E7EB; }
-             .output-title { font-weight: 500; font-size: 0.8rem; color: #4B5563; text-transform: uppercase; letter-spacing: 0.02em; }
-             .output-code-block { background-color: #F3F4F6; padding: 0.5rem 0.75rem; border: 1px solid #E5E7EB; border-radius: 0.25rem; font-family: monospace; font-size: 0.8rem; line-height: 1.4; color: #1F2937; }
-             .output-info { background-color: #F0FDF4; padding: 0.5rem 0.75rem; border-top: 1px solid #A7F3D0; display: flex; align-items: center; font-size: 0.8rem; color: #065F46; }
-             .btn-copy { font-size: 0.7rem; color: #3B82F6; background: none; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.2rem; padding: 0.2rem 0.4rem; border-radius: 0.25rem; }
-             .btn-copy:hover { background-color: #EFF6FF; color: #1D4ED8; }
-             .code { background-color: #E5E7EB; padding: 0.1rem 0.3rem; border-radius: 0.25rem; font-family: monospace; font-size: 0.85em; color: #374151;}
-           `}</style>
-        </div>
-      )}
+              </div>
+            </div>
+          )}
 
     </div> // Konec hlavního kontejneru
   );
