@@ -1,15 +1,17 @@
 {
   "files": {
-    "main.css": "/SOAPvsREST/static/css/main.33ba8182.css",
-    "main.js": "/SOAPvsREST/static/js/main.b8b7279c.js",
+    "main.css": "/SOAPvsREST/static/css/main.e8c7de16.css",
+    "main.js": "/SOAPvsREST/static/js/main.4083d4b9.js",
     "static/js/453.eeab4c9c.chunk.js": "/SOAPvsREST/static/js/453.eeab4c9c.chunk.js",
+    "static/media/logo-ppl.svg": "/SOAPvsREST/static/media/logo-ppl.7186e17bf2db1a014cf7f53363448766.svg",
     "index.html": "/SOAPvsREST/index.html",
-    "main.33ba8182.css.map": "/SOAPvsREST/static/css/main.33ba8182.css.map",
-    "main.b8b7279c.js.map": "/SOAPvsREST/static/js/main.b8b7279c.js.map",
+    "static/media/favicon-ppl.svg": "/SOAPvsREST/static/media/favicon-ppl.6242feadf8b26bd59fe3479ba1c66e59.svg",
+    "main.e8c7de16.css.map": "/SOAPvsREST/static/css/main.e8c7de16.css.map",
+    "main.4083d4b9.js.map": "/SOAPvsREST/static/js/main.4083d4b9.js.map",
     "453.eeab4c9c.chunk.js.map": "/SOAPvsREST/static/js/453.eeab4c9c.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.33ba8182.css",
-    "static/js/main.b8b7279c.js"
+    "static/css/main.e8c7de16.css",
+    "static/js/main.4083d4b9.js"
   ]
 }
