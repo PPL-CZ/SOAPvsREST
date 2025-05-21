@@ -16,6 +16,17 @@ import {
   Globe,
 } from 'lucide-react';
 
+const APP_VERSION = 'v1.0.5';
+const APP_BUILD_DATE = '2025-05-19';
+const APP_VERSION_NOTES = [
+  'Initial release',
+  'Fixed extraction of array values from SOAP XML',
+  'Added proper handling of CustRefs mapping to CustomerReferences',
+  'Added consistent Limit=1000 and Offset=0 for all GET requests',
+  'Fixed extraction of PackNumbers from SOAP XML with namespace prefixes',
+  'Improved handling of comma-separated values in string elements',
+];
+
 // --- Typy pro Porovnávací Část ---
 type Field = {
   soapField: string;
@@ -60,6 +71,11 @@ type RestOutput = {
   path?: string;
   body?: any;
   queryParams?: Record<string, string | string[]>; // Pole pro query parametry
+  notes?: Array<{
+    type: 'warning' | 'info';
+    parameter: string;
+    message: string;
+  }>;
 } | null;
 
 // Detailnější typy pro strukturu dat v převodníku
@@ -2257,6 +2273,12 @@ const ApiComparisonConverter: React.FC = () => {
     converter: useRef<HTMLButtonElement>(null),
   };
 
+  const renderVersionInfo = () => (
+    <div className="text-xs text-gray-500 text-right mt-4">
+      {APP_VERSION} ({APP_BUILD_DATE})
+    </div>
+  );
+
   // Helper funkce pro překlad
   const t = (key: string): string => {
     // Bezpečný přístup s explicitními typy
@@ -2368,18 +2390,41 @@ const ApiComparisonConverter: React.FC = () => {
   };
 
   // Pomocné funkce pro extrakci hodnot z XML - AKTUALIZOVANÉ FUNKCE
-  // Extrakce hodnoty z XML tagu
   const extractValue = (xml: string, path: string): string | null => {
     const tagName = path.split('.').pop();
     if (!tagName) return null;
-    const pattern = new RegExp(
+
+    // 1. Zkusíme nejprve s obecným vzorem pro namespace (stávající kód)
+    const generalPattern = new RegExp(
       `<(?:\\w+:)?${tagName}[^>]*>([^<]*)</(?:\\w+:)?${tagName}>`,
       'i'
     );
-    const match = xml.match(pattern);
-    return match
-      ? match[1].replace('<![CDATA[', '').replace(']]>', '').trim()
-      : null;
+    const generalMatch = xml.match(generalPattern);
+    if (generalMatch) {
+      return generalMatch[1].replace('<![CDATA[', '').replace(']]>', '').trim();
+    }
+
+    // 2. Pokud selže obecný vzor, zkusíme konkrétní případ pro v1: namespace
+    const v1Pattern = new RegExp(
+      `<v1:${tagName}[^>]*>([^<]*)</v1:${tagName}>`,
+      'i'
+    );
+    const v1Match = xml.match(v1Pattern);
+    if (v1Match) {
+      return v1Match[1].replace('<![CDATA[', '').replace(']]>', '').trim();
+    }
+
+    // 3. A pokud vše selže, zkusíme přímé hledání tagu bez ohledu na cestu
+    const directPattern = new RegExp(
+      `<(?:\\w+:)?${tagName}[^>]*>([^<]*)</(?:\\w+:)?${tagName}>`,
+      'i'
+    );
+    const directMatch = xml.match(directPattern);
+    if (directMatch) {
+      return directMatch[1].replace('<![CDATA[', '').replace(']]>', '').trim();
+    }
+
+    return null;
   };
 
   // Extrakce vnořené hodnoty
@@ -2414,65 +2459,132 @@ const ApiComparisonConverter: React.FC = () => {
 
   // NOVÁ FUNKCE: Extrakce pole hodnot (např. pro PackNumbers[])
   const extractArrayValues = (xml: string, path: string): string[] => {
+    const startTime = new Date().getTime();
+    console.log(`[START] Extracting array values for path: ${path}`);
+
     const parts = path.split('.');
-    if (parts.length < 2) return [];
+    if (parts.length < 2) {
+      console.log(`[ERROR] Invalid path format: ${path}`);
+      return [];
+    }
 
     const parentTag = parts[0];
     const childTag = parts[1];
 
-    // Najdeme obsah rodičovského tagu
-    const parentPattern = new RegExp(
-      `<(?:\\w+:)?${parentTag}[^>]*>(.*?)</(?:\\w+:)?${parentTag}>`,
-      'is'
-    );
-    const parentMatch = xml.match(parentPattern);
+    console.log(`Looking for parent: ${parentTag}, child: ${childTag}`);
 
-    if (!parentMatch?.[1]) return [];
+    try {
+      // První zpřísněný způsob: hledáme konkrétní v1: prefix pro Filter a arr: pro string
+      let values: string[] = [];
 
-    const parentContent = parentMatch[1];
+      // Vzor: <v1:Filter>...<v1:ChildTag>...<arr:string>value</arr:string>...</v1:ChildTag>...</v1:Filter>
+      const regexPattern = new RegExp(
+        `<(?:v1:)?${parentTag}[^>]*>.*?<(?:v1:)?${childTag}[^>]*>(.*?)</(?:v1:)?${childTag}>.*?</(?:v1:)?${parentTag}>`,
+        'is'
+      );
+      const match = xml.match(regexPattern);
 
-    // Najdeme všechny výskyty child tagu a extrahujeme hodnoty
-    const childRegex = new RegExp(
-      `<(?:\\w+:)?${childTag}[^>]*>([^<]*)</(?:\\w+:)?${childTag}>`,
-      'ig'
-    );
-    const values: string[] = [];
-    let match;
+      if (match && match[1]) {
+        const childContent = match[1];
+        console.log(
+          `Found content for ${childTag} (${childContent.length} chars)`
+        );
 
-    while ((match = childRegex.exec(parentContent)) !== null) {
-      values.push(match[1].replace('<![CDATA[', '').replace(']]>', '').trim());
+        // Extrakce string hodnot
+        const stringRegex = /<(?:arr:)?string[^>]*>(.*?)<\/(?:arr:)?string>/gi;
+        let stringMatch;
+
+        while ((stringMatch = stringRegex.exec(childContent)) !== null) {
+          const value = stringMatch[1].trim();
+          console.log(`Found string value: "${value}"`);
+
+          if (value) {
+            if (value.includes(',')) {
+              const splitValues = value
+                .split(',')
+                .map((v) => v.trim())
+                .filter(Boolean);
+              console.log(
+                `Split comma-separated value into ${splitValues.length} parts`
+              );
+              values.push(...splitValues);
+            } else {
+              values.push(value);
+            }
+          }
+        }
+      } else {
+        console.log(`No match found for ${parentTag}.${childTag}`);
+      }
+
+      console.log(
+        `[END] Extracted ${values.length} values for ${path} in ${
+          new Date().getTime() - startTime
+        }ms`
+      );
+      return values;
+    } catch (error) {
+      console.error(`[ERROR] Error extracting values for ${path}:`, error);
+      return [];
     }
-
-    return values;
   };
 
   // NOVÁ FUNKCE: Vytvoření query stringu z parametrů
   const constructQueryString = (
     params: Record<string, string | string[] | undefined>
   ): string => {
-    if (!params || Object.keys(params).length === 0) return '';
+    console.log(
+      'Constructing query string from params:',
+      JSON.stringify(params, null, 2)
+    );
+
+    if (!params || Object.keys(params).length === 0) {
+      console.log('No params to construct query string');
+      return '';
+    }
 
     const queryParts: string[] = [];
 
     Object.entries(params).forEach(([key, value]) => {
-      if (value === undefined) return;
+      console.log(`Processing param ${key}:`, value);
+
+      if (value === undefined) {
+        console.log(`- Skipping undefined value for ${key}`);
+        return;
+      }
 
       if (Array.isArray(value)) {
+        console.log(`- Array value for ${key}, length: ${value.length}`);
+
+        if (value.length === 0) {
+          console.log(`- Skipping empty array for ${key}`);
+          return;
+        }
+
         // Pro pole hodnot přidáme každou hodnotu zvlášť s opakovaným klíčem
-        value.forEach((item) => {
-          if (item)
-            queryParts.push(
-              `${encodeURIComponent(key)}=${encodeURIComponent(item)}`
-            );
+        value.forEach((item, index) => {
+          if (item) {
+            const paramPart = `${encodeURIComponent(key)}=${encodeURIComponent(
+              item
+            )}`;
+            console.log(`  - Adding array item ${index}: ${paramPart}`);
+            queryParts.push(paramPart);
+          } else {
+            console.log(`  - Skipping empty item ${index}`);
+          }
         });
       } else {
-        queryParts.push(
-          `${encodeURIComponent(key)}=${encodeURIComponent(value)}`
-        );
+        const paramPart = `${encodeURIComponent(key)}=${encodeURIComponent(
+          value
+        )}`;
+        console.log(`- Adding single value: ${paramPart}`);
+        queryParts.push(paramPart);
       }
     });
 
-    return queryParts.length ? '?' + queryParts.join('&') : '';
+    const result = queryParts.length ? '?' + queryParts.join('&') : '';
+    console.log('Final constructed query string:', result);
+    return result;
   };
 
   // NOVÁ FUNKCE: Formátování data do YYYY-MM-DD
@@ -2968,70 +3080,360 @@ const ApiComparisonConverter: React.FC = () => {
 
   // NOVÁ METODA: Zpracování GetPackages (sledování zásilek)
   const handleGetPackages = (xml: string) => {
+    console.log('========== ZAČÁTEK handleGetPackages ==========');
+    console.log('Vstupní XML:', xml);
+    let notes: Array<{
+      type: 'warning' | 'info';
+      parameter: string;
+      message: string;
+    }> = [];
+
     try {
-      // Extrahujeme filter sekci
+      // Nejprve vyčistíme přístup - vytvoříme prázdné objekty pro filtr a query parametry
       const filter: PackageFilter = {};
 
-      // Zpracování pole PackNumbers[] - čísla zásilek
-      const packNumbers = extractArrayValues(xml, 'Filter.PackNumbers');
-      if (packNumbers.length > 0) {
-        filter.packNumbers = packNumbers;
+      // DŮLEŽITÉ: Nastavíme výchozí hodnoty pro REST API
+      const defaultLimit = 1000;
+      const defaultOffset = 0;
+
+      // Inicializujeme query parametry pouze s výchozími hodnotami
+      const queryParams: Record<string, string | string[]> = {
+        Limit: defaultLimit.toString(),
+        Offset: defaultOffset.toString(),
+      };
+
+      // *** ČISTÉ A ODDĚLENÉ ZPRACOVÁNÍ JEDNOTLIVÝCH PARAMETRŮ ***
+
+      // 1. Zpracování PackNumbers - specificky s detailním logováním
+      try {
+        console.log('=== Processing PackNumbers ===');
+        const packNumbers = extractArrayValues(xml, 'Filter.PackNumbers');
+        console.log('Extracted PackNumbers:', packNumbers);
+
+        if (packNumbers && packNumbers.length > 0) {
+          queryParams.ShipmentNumbers = packNumbers;
+          console.log('Added ShipmentNumbers to queryParams:', packNumbers);
+        } else {
+          console.log('No ShipmentNumbers to add');
+        }
+      } catch (e) {
+        console.error('Error processing PackNumbers:', e);
       }
 
-      // Zpracování pole CustRefs[] - zákaznické reference
-      const custRefs = extractArrayValues(xml, 'Filter.CustRefs');
-      if (custRefs.length > 0) {
-        filter.custRefs = custRefs;
+      // 2. Zpracování CustRefs - specificky s detailním logováním
+      try {
+        console.log('=== Processing CustRefs ===');
+        const custRefs = extractArrayValues(xml, 'Filter.CustRefs');
+        console.log('Extracted CustRefs:', custRefs);
+
+        if (custRefs && custRefs.length > 0) {
+          queryParams.CustomerReferences = custRefs;
+          console.log('Added CustomerReferences to queryParams:', custRefs);
+        } else {
+          console.log('No CustomerReferences to add');
+        }
+      } catch (e) {
+        console.error('Error processing CustRefs:', e);
       }
 
-      // Extrakce datumů
-      const dateFrom = extractValue(xml, 'Filter.DateFrom');
-      if (dateFrom) {
-        filter.dateFrom = formatDateToYYYYMMDD(dateFrom);
+      // 3. Zpracování DateFrom - specificky
+      try {
+        console.log('=== Processing DateFrom ===');
+        const dateFrom = extractValue(xml, 'Filter.DateFrom');
+        console.log('Extracted DateFrom:', dateFrom);
+
+        if (dateFrom) {
+          const formattedDate = formatDateToYYYYMMDD(dateFrom);
+          queryParams.DateFrom = formattedDate;
+          console.log('Added DateFrom to queryParams:', formattedDate);
+        } else {
+          console.log('No DateFrom to add');
+        }
+      } catch (e) {
+        console.error('Error processing DateFrom:', e);
       }
 
-      const dateTo = extractValue(xml, 'Filter.DateTo');
-      if (dateTo) {
-        filter.dateTo = formatDateToYYYYMMDD(dateTo);
+      // 4. Zpracování DateTo - specificky
+      try {
+        console.log('=== Processing DateTo ===');
+        const dateTo = extractValue(xml, 'Filter.DateTo');
+        console.log('Extracted DateTo:', dateTo);
+
+        if (dateTo) {
+          const formattedDate = formatDateToYYYYMMDD(dateTo);
+          queryParams.DateTo = formattedDate;
+          console.log('Added DateTo to queryParams:', formattedDate);
+        } else {
+          console.log('No DateTo to add');
+        }
+      } catch (e) {
+        console.error('Error processing DateTo:', e);
       }
 
-      // Extrakce stavů zásilek
-      const packageStates = extractArrayValues(xml, 'Filter.PackageStates');
-      if (packageStates.length > 0) {
-        filter.packageStates = packageStates;
+      // 5. Zpracování PackageStates - specificky
+      try {
+        console.log('=== Processing PackageStates ===');
+        const packageStates = extractArrayValues(xml, 'Filter.PackageStates');
+        console.log('Extracted PackageStates (array):', packageStates);
+
+        // Přidáme také podporu pro jednotlivý stav
+        const singlePackageState = extractValue(xml, 'Filter.PackageState');
+        console.log('Extracted PackageState (single):', singlePackageState);
+
+        const allPackageStates: string[] = [...packageStates];
+        if (singlePackageState) {
+          allPackageStates.push(singlePackageState);
+        }
+
+        if (allPackageStates.length > 0) {
+          queryParams.ShipmentStates = allPackageStates;
+          console.log('Added ShipmentStates to queryParams:', allPackageStates);
+        } else {
+          console.log('No ShipmentStates to add');
+        }
+      } catch (e) {
+        console.error('Error processing PackageStates:', e);
       }
 
-      // Sestavení REST query parametrů
-      const queryParams: Record<string, string | string[]> = {};
+      // 6. Zpracování Invoice parametru - specificky
+      try {
+        console.log('=== Processing Invoice ===');
+        const invoice = extractValue(xml, 'Filter.Invoice');
+        console.log('Extracted Invoice:', invoice);
 
-      if (filter.packNumbers && filter.packNumbers.length > 0) {
-        queryParams.ShipmentNumbers = filter.packNumbers;
+        if (invoice) {
+          queryParams.Invoice = invoice;
+          console.log('Added Invoice to queryParams:', invoice);
+        } else {
+          console.log('No Invoice to add');
+        }
+      } catch (e) {
+        console.error('Error processing Invoice:', e);
       }
 
-      if (filter.custRefs && filter.custRefs.length > 0) {
-        queryParams.CustomerReferences = filter.custRefs;
+      // 7. Zpracování RoutingCode parametru
+      try {
+        console.log('=== Processing RoutingCode ===');
+        const routingCode = extractValue(xml, 'Filter.RoutingCode');
+        console.log('Extracted RoutingCode:', routingCode);
+
+        if (routingCode) {
+          queryParams.RoutingCode = routingCode;
+          console.log('Added RoutingCode to queryParams:', routingCode);
+        } else {
+          console.log('No RoutingCode to add');
+        }
+      } catch (e) {
+        console.error('Error processing RoutingCode:', e);
       }
 
-      if (filter.dateFrom) {
-        queryParams.DateFrom = filter.dateFrom;
+      // 8. Zpracování SenderCity parametru
+      try {
+        console.log('=== Processing SenderCity ===');
+        const senderCity = extractValue(xml, 'Filter.SenderCity');
+        console.log('Extracted SenderCity:', senderCity);
+
+        if (senderCity) {
+          queryParams.SenderCity = senderCity;
+          console.log('Added SenderCity to queryParams:', senderCity);
+        } else {
+          console.log('No SenderCity to add');
+        }
+      } catch (e) {
+        console.error('Error processing SenderCity:', e);
       }
 
-      if (filter.dateTo) {
-        queryParams.DateTo = filter.dateTo;
+      // 9. Zpracování RecipientCity parametru
+      try {
+        console.log('=== Processing RecipientCity ===');
+        const recipientCity = extractValue(xml, 'Filter.RecipientCity');
+        console.log('Extracted RecipientCity:', recipientCity);
+
+        if (recipientCity) {
+          queryParams.RecipientCity = recipientCity;
+          console.log('Added RecipientCity to queryParams:', recipientCity);
+        } else {
+          console.log('No RecipientCity to add');
+        }
+      } catch (e) {
+        console.error('Error processing RecipientCity:', e);
       }
 
-      if (filter.packageStates && filter.packageStates.length > 0) {
-        queryParams.ShipmentStates = filter.packageStates;
+      // 10. Zpracování ExternalNumber parametru
+      try {
+        console.log('=== Processing ExternalNumber ===');
+        const externalNumber = extractValue(xml, 'Filter.ExternalNumber');
+        console.log('Extracted ExternalNumber:', externalNumber);
+
+        if (externalNumber) {
+          queryParams.ExternalNumber = externalNumber;
+          console.log('Added ExternalNumber to queryParams:', externalNumber);
+        } else {
+          console.log('No ExternalNumber to add');
+        }
+      } catch (e) {
+        console.error('Error processing ExternalNumber:', e);
       }
 
+      // 11. Zpracování IsReturnPackage parametru
+      try {
+        console.log('=== Processing IsReturnPackage ===');
+        const isReturnPackage = extractValue(xml, 'Filter.IsReturnPackage');
+        console.log('Extracted IsReturnPackage:', isReturnPackage);
+
+        if (isReturnPackage) {
+          // Převod na boolean
+          queryParams.IsReturnPackage =
+            isReturnPackage.toLowerCase() === 'true' ? 'true' : 'false';
+          console.log(
+            'Added IsReturnPackage to queryParams:',
+            queryParams.IsReturnPackage
+          );
+        } else {
+          console.log('No IsReturnPackage to add');
+        }
+      } catch (e) {
+        console.error('Error processing IsReturnPackage:', e);
+      }
+
+      try {
+        console.log('=== Processing InvNumbers ===');
+        const invNumbers = extractArrayValues(xml, 'Filter.InvNumbers');
+        console.log('Extracted InvNumbers:', invNumbers);
+
+        if (invNumbers && invNumbers.length > 0) {
+          queryParams.InvoiceNumbers = invNumbers;
+          console.log('Added InvoiceNumbers to queryParams:', invNumbers);
+        } else {
+          console.log('No InvoiceNumbers to add');
+        }
+      } catch (e) {
+        console.error('Error processing InvNumbers:', e);
+      }
+
+      // 12. Zpracování Sizes parametru
+      try {
+        console.log('=== Processing Sizes ===');
+
+        // Sizes mohou být jako pole hodnot
+        const sizes = extractArrayValues(xml, 'Filter.Sizes');
+        console.log('Extracted Sizes (array):', sizes);
+
+        // Případně také jako jednotlivá hodnota
+        const singleSize = extractValue(xml, 'Filter.Size');
+        console.log('Extracted Size (single):', singleSize);
+
+        const allSizes: string[] = [...sizes];
+        if (singleSize) {
+          allSizes.push(singleSize);
+        }
+
+        if (allSizes.length > 0) {
+          queryParams.Sizes = allSizes;
+          console.log('Added Sizes to queryParams:', allSizes);
+        } else {
+          console.log('No Sizes to add');
+        }
+      } catch (e) {
+        console.error('Error processing Sizes:', e);
+      }
+
+      // 13. Zpracování SubjectId parametru
+      try {
+        console.log('=== Processing SubjectId ===');
+        const subjectId = extractValue(xml, 'SubjectId');
+        console.log('Extracted SubjectId:', subjectId);
+
+        if (subjectId) {
+          // Místo přidání do restOutput.notes použij lokální notes
+          notes.push({
+            type: 'warning',
+            parameter: 'SubjectId',
+            message:
+              'Parametr SubjectId nemá ekvivalent v CPL API a bude ignorován.',
+          });
+          console.log(
+            'UPOZORNĚNÍ: SubjectId nemá ekvivalent v CPL API a bude ignorován.'
+          );
+        }
+      } catch (e) {
+        console.error('Error processing SubjectId:', e);
+      }
+
+      // Zpracování StatusLang parametru
+      console.log('=== Processing StatusLang - NEW VERSION ===');
+      try {
+        // Zkusíme přímo hledat tag v XML bez ohledu na cestu
+        const statusLangMatch = xml.match(/<v1:StatusLang[^>]*>([^<]*)<\/v1:StatusLang>/i);
+        console.log('StatusLang match result:', statusLangMatch);
+        
+        if (statusLangMatch && statusLangMatch[1]) {
+          const statusLangValue = statusLangMatch[1].trim();
+          console.log('FOUND StatusLang value:', statusLangValue);
+          
+          // VŽDY přidáme upozornění, když najdeme StatusLang
+          notes.push({
+            type: 'warning',
+            parameter: 'StatusLang',
+            message: 'Parametr StatusLang nemá ekvivalent v CPL API a bude ignorován.'
+          });
+          console.log('Added warning about StatusLang');
+        } else if (xml.includes('StatusLang')) {
+          console.log('StatusLang string found in XML, but value not extracted');
+          notes.push({
+            type: 'warning',
+            parameter: 'StatusLang',
+            message: 'Parametr StatusLang byl detekován, ale nemá ekvivalent v CPL API a bude ignorován.'
+          });
+          console.log('Added warning about detected StatusLang');
+        } else {
+          console.log('No StatusLang found in XML');
+        }
+      } catch (error) {
+        console.error('Error processing StatusLang:', error);
+      }
+
+            // 15. Zpracování VariableSymbolsCOD parametru
+            try {
+              console.log('=== Processing VariableSymbolsCOD ===');
+              const variableSymbolsCOD = extractValue(xml, 'VariableSymbolsCOD');
+              console.log('Extracted VariableSymbolsCOD:', variableSymbolsCOD);
+
+              if (variableSymbolsCOD) {
+                queryParams.VariableSymbolsCOD = variableSymbolsCOD;
+                console.log(
+                  'Added VariableSymbolsCOD to queryParams:',
+                  variableSymbolsCOD
+                );
+              }
+            } catch (e) {
+              console.error('Error processing VariableSymbolsCOD:', e);
+            }
+
+      // Výpis kompletních query parametrů pro kontrolu
+      console.log(
+        '=== Final queryParams ===',
+        JSON.stringify(queryParams, null, 2)
+      );
+
+      // Sestavení finálního query stringu pro kontrolu
+      const finalQueryString = constructQueryString(queryParams);
+      console.log('=== Final query string ===', finalQueryString);
+      console.log('Poznámky před výstupem:', JSON.stringify(notes, null, 2));
+      console.log('Výsledné queryParams:', JSON.stringify(queryParams, null, 2));
+      console.log('========== KONEC handleGetPackages ==========');
+
+      // Nastavení výsledku pro UI
       setRestOutput({
         success: true,
         operation: 'GetPackages',
         method: 'GET',
         path: '/shipment',
         queryParams: queryParams,
-        body: null, // GET nemá body
+        body: null,
+        notes: notes.length > 0 ? notes : undefined,
       });
+
     } catch (error: any) {
       console.error('Chyba zpracování GetPackages:', error);
       setRestOutput({
@@ -3170,14 +3572,34 @@ const ApiComparisonConverter: React.FC = () => {
         filter.dateTo = formatDateToYYYYMMDD(dateTo);
       }
 
-      // Extrakce stavů objednávek
-      const orderStates = extractArrayValues(xml, 'Filter.OrderStates');
+      // NOVÁ ČÁST: Extrakce stavu objednávky - může být jak pole, tak i jednotlivý element
+      const orderStates: string[] = [];
+
+      // Zkusíme extrahovat jako pole
+      const orderStatesArray = extractArrayValues(xml, 'Filter.OrderStates');
+      if (orderStatesArray.length > 0) {
+        orderStates.push(...orderStatesArray);
+      }
+
+      // Zkusíme extrahovat jako jednotlivý element
+      const singleOrderState = extractValue(xml, 'Filter.OrderState');
+      if (singleOrderState) {
+        orderStates.push(singleOrderState);
+      }
+
       if (orderStates.length > 0) {
         filter.orderStates = orderStates;
       }
 
+      // Výchozí hodnoty pro REST API
+      const defaultLimit = 1000;
+      const defaultOffset = 0;
+
       // Sestavení REST query parametrů
-      const queryParams: Record<string, string | string[]> = {};
+      const queryParams: Record<string, string | string[]> = {
+        Limit: defaultLimit.toString(),
+        Offset: defaultOffset.toString(),
+      };
 
       if (filter.orderNumbers && filter.orderNumbers.length > 0) {
         queryParams.OrderNumbers = filter.orderNumbers;
@@ -3266,57 +3688,121 @@ const ApiComparisonConverter: React.FC = () => {
     }
   };
 
-  // NOVÁ METODA: Zpracování GetParcelShops (výdejní místa)
-  // OPRAVENÁ METODA: Zpracování GetParcelShops (výdejní místa)
+  // OPRAVENÁ METODA: Zpracování GetParcelShops (výdejní místa) - přidána podpora pro Sizes
   const handleGetParcelShops = (xml: string) => {
     try {
-      // Extrahujeme hlavní parametry filtru - OPRAVA: přidáno vyhledávání v1:CountryCode a dalších možných formátů
-      const code =
-        extractValue(xml, 'Filter.Code') ||
-        extractValue(xml, 'Filter.AccessPointCode');
-      const accessPointType =
-        extractValue(xml, 'Filter.AccessPointType') ||
-        extractValue(xml, 'v1:AccessPointType');
-      const countryCode =
-        extractValue(xml, 'v1:CountryCode') ||
-        extractValue(xml, 'Filter.CountryCode');
-      const zipCode = extractValue(xml, 'Filter.ZipCode');
+      // Extrahujeme parametry filtru podle dokumentace
+      const accessPointType = extractValue(xml, 'Filter.AccessPointType');
+      const activeCardPayment = extractValue(xml, 'Filter.ActiveCardPayment');
+      const activeCashPayment = extractValue(xml, 'Filter.ActiveCashPayment');
       const city = extractValue(xml, 'Filter.City');
-      const street = extractValue(xml, 'Filter.Street');
+      const code = extractValue(xml, 'Filter.Code');
+      const countryCode =
+        extractValue(xml, 'Filter.CountryCode') ||
+        extractValue(xml, 'v1:CountryCode');
+      const latitude = extractValue(xml, 'Filter.Latitude');
+      const longitude = extractValue(xml, 'Filter.Longitude');
+      const radius = extractValue(xml, 'Filter.Radius');
+      const zipCode = extractValue(xml, 'Filter.ZipCode');
+
+      // Nově přidáno: extrakce Sizes
+      const sizes = extractArrayValues(xml, 'Filter.Sizes');
+      const singleSize = extractValue(xml, 'Filter.Size');
+      console.log('Extracted Sizes (array):', sizes);
+      console.log('Extracted Size (single):', singleSize);
 
       // Výchozí hodnoty pro REST API
-      const defaultLimit = 0;
-      const defaultOffset = 1000;
+      const defaultLimit = 1000;
+      const defaultOffset = 0;
 
       // Sestavení REST query parametrů
-      const queryParams: Record<string, string> = {
+      const queryParams: Record<string, string | string[]> = {
         Limit: defaultLimit.toString(),
         Offset: defaultOffset.toString(),
       };
 
-      if (code) {
-        queryParams.AccessPointCode = code;
-      }
+      // Pomocná funkce pro převod na boolean hodnotu (podporuje true/false, 1/0)
+      const convertToBoolean = (value: string | null): string | undefined => {
+        if (!value) return undefined;
 
+        // Převod na boolean
+        if (value.toLowerCase() === 'true' || value === '1') {
+          return 'true';
+        } else if (value.toLowerCase() === 'false' || value === '0') {
+          return 'false';
+        }
+
+        // Pokud není ani true/false ani 1/0, vrátíme původní hodnotu
+        return value;
+      };
+
+      // Mapování parametrů SOAP na REST podle dokumentace
       if (accessPointType) {
         queryParams.AccessPointType = accessPointType;
       }
 
-      if (countryCode) {
-        queryParams.CountryCode = countryCode;
+      // Použití vylepšené konverze pro boolean hodnoty
+      const boolCardPayment = convertToBoolean(activeCardPayment);
+      if (boolCardPayment) {
+        queryParams.ActiveCardPayment = boolCardPayment;
       }
 
-      if (zipCode) {
-        queryParams.ZipCode = zipCode;
+      const boolCashPayment = convertToBoolean(activeCashPayment);
+      if (boolCashPayment) {
+        queryParams.ActiveCashPayment = boolCashPayment;
       }
 
       if (city) {
         queryParams.City = city;
       }
 
-      if (street) {
-        queryParams.Street = street;
+      if (code) {
+        queryParams.AccessPointCode = code; // V REST API se to jmenuje AccessPointCode
       }
+
+      if (countryCode) {
+        queryParams.CountryCode = countryCode;
+      }
+
+      if (latitude) {
+        queryParams.Latitude = latitude;
+      }
+
+      if (longitude) {
+        queryParams.Longitude = longitude;
+      }
+
+      if (radius) {
+        queryParams.Radius = radius;
+      }
+
+      if (zipCode) {
+        queryParams.ZipCode = zipCode;
+      }
+
+      // Nově přidáno: zpracování Sizes
+      const allSizes: string[] = [...sizes];
+      if (singleSize) {
+        allSizes.push(singleSize);
+      }
+
+      if (allSizes.length > 0) {
+        queryParams.Sizes = allSizes;
+        console.log('Added Sizes to queryParams:', allSizes);
+      }
+
+      // Přidání ladícího výpisu
+      console.log(
+        '=== Final queryParams for GetParcelShops ===',
+        JSON.stringify(queryParams, null, 2)
+      );
+
+      // Sestavení finálního query stringu pro kontrolu
+      const finalQueryString = constructQueryString(queryParams);
+      console.log(
+        '=== Final query string for GetParcelShops ===',
+        finalQueryString
+      );
 
       setRestOutput({
         success: true,
@@ -3480,159 +3966,73 @@ const ApiComparisonConverter: React.FC = () => {
     setRestOutput(null);
   };
 
-  // Renderování výstupu pro REST
-  const renderRestOutput = () => {
-    if (restOutput === null) {
-      return (
-        <div className="output-placeholder flex-grow">
-          {t('resultWillAppear')}
-        </div>
-      );
+// Renderování výstupu pro REST
+const renderRestOutput = () => {
+  // TYTO LOGY ZŮSTÁVAJÍ, JSOU DŮLEŽITÉ
+  console.log('--- renderRestOutput --- Vstupní hodnota restOutput.notes:', JSON.stringify(restOutput?.notes, null, 2));
+  if (restOutput) {
+    console.log('renderRestOutput: success =', restOutput.success); // Tento log jste už měl přidat
+    console.log('renderRestOutput: notes =', restOutput.notes ? 'exists' : 'undefined/null');
+    if (restOutput.notes) {
+      console.log('renderRestOutput: notes length =', restOutput.notes.length);
+      console.log('renderRestOutput: notes content =', JSON.stringify(restOutput.notes, null, 2));
     }
+  }
+ 
+  return (
+    <div className="output-success flex-grow" style={{border: "2px dashed blue", padding: "10px"}}> {/* Přidán modrý rámeček pro identifikaci tohoto bloku */}
+      <p style={{color: "blue", fontWeight: "bold"}}>TOTO JE ZE ZJEDNODUŠENÉ renderRestOutput</p>
 
-    if (!restOutput.success) {
-      return (
-        <div className="output-error flex-grow">
-          <AlertCircle size={18} className="mr-2 flex-shrink-0" />{' '}
-          {t('conversionError')}: {restOutput.error}
+      {/* NÁŠ SUPER JEDNODUCHÝ TEST PRO POZNÁMKY */}
+      {restOutput && restOutput.notes && restOutput.notes.length > 0 && (
+        <div style={{ border: "5px solid limegreen", padding: "20px", marginTop: "15px", backgroundColor: "lightgreen" }}>
+          <h2 style={{ color: "darkgreen", fontSize: "20px", fontWeight: "bold" }}>
+            TEST ZOBRAZENÍ POZNÁMEK JE TADY!!!
+          </h2>
+          <p style={{ marginTop: "10px" }}>
+            Počet poznámek, které jsem našel: {restOutput.notes.length}
+          </p>
+          <p style={{ marginTop: "5px" }}>Obsah první poznámky:</p>
+          <pre style={{ backgroundColor: "white", padding: "10px", marginTop: "5px" }}>
+            {JSON.stringify(restOutput.notes[0], null, 2)}
+          </pre>
         </div>
-      );
-    }
-
-    // Sestavení URL s query parametry
-    let url = `${converterBaseUrl}${restOutput.path}`;
-    if (
-      restOutput.queryParams &&
-      Object.keys(restOutput.queryParams).length > 0
-    ) {
-      url += constructQueryString(restOutput.queryParams);
-    }
-
-    return (
-      <div className="output-success flex-grow">
-        {/* Endpoint URL - VYLEPŠENO: výraznější zobrazení URL s query parametry */}
-        <div className="output-section mb-4">
-          <div className="flex justify-between items-center mb-1">
-            <h4 className="output-title">{t('endpoint')}</h4>
-            <button
-              className="btn-copy"
-              onClick={() =>
-                copyToClipboard(`${restOutput.method} ${url}`, 'rest-url')
-              }
-            >
-              {copiedButtonId === 'rest-url' ? (
-                <Check size={14} />
-              ) : (
-                <Copy size={14} />
-              )}
-              <span className="ml-1">{t('copyEndpoint')}</span>
-            </button>
-          </div>
-          <div className="output-code-block p-3 rounded bg-gray-50 border border-gray-200 overflow-x-auto">
-            <code className="flex items-center text-xs break-all font-mono">
-              <span
-                className={`font-semibold mr-2 ${
-                  restOutput.method === 'POST'
-                    ? 'text-green-600'
-                    : 'text-blue-600'
-                }`}
-              >
-                {restOutput.method}
-              </span>
-              <span className="text-gray-700">{url}</span>
-              {/* <span className="text-gray-700">{url}</span> */}
-            </code>
-          </div>
-        </div>
-
-        {/* NOVÁ SEKCE: Query Parameters - Zobrazení pouze pokud existují */}
-        {restOutput.queryParams &&
-          Object.keys(restOutput.queryParams).length > 0 && (
-            <div className="output-section mb-4">
-              <div className="flex justify-between items-center mb-1">
-                <h4 className="text-sm font-medium text-gray-700">
-                  Query Parameters
-                </h4>
-              </div>
-              <div className="p-3 rounded bg-gray-50 border border-gray-200">
-                <ul className="text-xs space-y-1">
-                  {Object.entries(restOutput.queryParams).map(
-                    ([key, value]) => (
-                      <li key={key} className="font-mono">
-                        <span className="text-blue-600">{key}</span>
-                        <span className="text-gray-500"> = </span>
-                        <span className="text-green-600">
-                          {Array.isArray(value) ? value.join(', ') : value}
-                        </span>
-                      </li>
-                    )
-                  )}
-                </ul>
-              </div>
-            </div>
-          )}
-
-        {/* Body JSON - zobrazení pouze pokud existuje body */}
-        {restOutput.body && (
-          <div className="output-section flex-1 flex flex-col min-h-0">
-            <div className="flex justify-between items-center mb-1 flex-shrink-0">
-              <h4 className="output-title">{t('jsonBody')}</h4>
-              <button
-                className="btn-copy"
-                onClick={() =>
-                  copyToClipboard(
-                    JSON.stringify(restOutput.body, null, 2),
-                    'rest-body'
-                  )
-                }
-              >
-                {copiedButtonId === 'rest-body' ? (
-                  <Check size={14} />
-                ) : (
-                  <Copy size={14} />
-                )}
-                <span className="ml-1">{t('copyJson')}</span>
-              </button>
-            </div>
-            <div className="flex-1 overflow-auto border border-gray-200 rounded bg-gray-50">
-              <pre className="output-code-block text-[11px] bg-transparent border-none">
-                {JSON.stringify(restOutput.body, null, 2)}
-              </pre>
-            </div>
-          </div>
-        )}
-
-        {/* Info o transformaci */}
-        <div className="output-info mt-2 flex-shrink-0">
-          <Check size={16} className="mr-1 text-green-600 flex-shrink-0" />
-          {t('conversionSuccess')}:{' '}
-          <code className="code">{restOutput.operation}</code>{' '}
-          {t('operationConverted')}
-        </div>
-      </div>
-    );
-  };
+      )}
+      {/* KDYŽ POZNÁMKY NEJSOU, ZOBRAZÍME NĚCO JINÉHO */}
+      {!(restOutput && restOutput.notes && restOutput.notes.length > 0) && (
+        <p style={{color: "orange", marginTop: "10px"}}>Poznámky (notes) nebyly nalezeny nebo je pole prázdné.</p>
+      )}
+    </div>
+  );
+  // ===== KONEC NOVÉHO, ZJEDNODUŠENÉHO RETURN BLOKU =====
+};
 
   // Zde by byl vrácen JSX komponenty
   return (
     // Použití Tailwind tříd pro hlavní kontejner
     <div className="max-w-7xl mx-auto p-6 bg-white rounded-lg shadow-lg mt-0 mb-8 font-sans">
-      {/* Hlavička (kombinace z obou souborů) */}
       {/* Hlavička */}
       <div className="mb-8 pb-4 border-b border-gray-200">
-        {/* Řádek 1: Logo a Přepínač */}
+        {/* Řádek 1: Logo, Verze a Přepínač */}
         <div className="flex justify-between items-center mb-8">
-          <img src={LogoPPL} alt="PPL Logo" className="h-10 md:h-12" />
+          <div className="flex items-center">
+            <img src={LogoPPL} alt="PPL Logo" className="h-10 md:h-12" />
+          </div>
+          <div className="flex flex-col items-end">
+            {/* Verze nahoře nad přepínačem jazyka */}
+            <span className="text-xs text-gray-500 mb-2">
+              {APP_VERSION} ({APP_BUILD_DATE})
+            </span>
 
-          <button
-            className="flex items-center gap-1 px-2 py-1 text-sm rounded-md bg-blue-100 hover:bg-blue-200 text-blue-700"
-            onClick={toggleLanguage}
-          >
-            <Globe size={16} />
-            {language === 'cs' ? 'EN' : 'CZ'}
-          </button>
+            <button
+              className="flex items-center gap-1 px-2 py-1 text-sm rounded-md bg-blue-100 hover:bg-blue-200 text-blue-700"
+              onClick={toggleLanguage}
+            >
+              <Globe size={16} />
+              {language === 'cs' ? 'EN' : 'CZ'}
+            </button>
+          </div>
         </div>
-
         {/* Řádek 2: Nadpis */}
         <h1 className="text-2xl md:text-2xl font-bold text-gray-800 text-center">
           {t('title')}
@@ -4691,7 +5091,8 @@ const ApiComparisonConverter: React.FC = () => {
                     <span className="text-xs font-mono overflow-x-auto flex-grow">
                       {`${converterBaseUrl}${restOutput.path}`}
                       <span className="text-blue-600 font-semibold">
-                        {restOutput.queryParams && Object.keys(restOutput.queryParams).length > 0
+                        {restOutput.queryParams &&
+                        Object.keys(restOutput.queryParams).length > 0
                           ? constructQueryString(restOutput.queryParams)
                           : ''}
                       </span>
@@ -4699,25 +5100,27 @@ const ApiComparisonConverter: React.FC = () => {
                   </div>
                 </div>
                 <button
-                    className="mt-2 text-xs flex items-center text-green-700 hover:text-green-900 bg-green-100 hover:bg-green-200 px-2 py-1 rounded"
-                    onClick={() =>
-                      copyToClipboard(
-                        `${restOutput.method} ${converterBaseUrl}${restOutput.path}${
-                          restOutput.queryParams
-                            ? constructQueryString(restOutput.queryParams)
-                            : ''
-                        }`,
-                        'rest-url'
-                      )
-                    }
-                  >
-                    {copiedButtonId === 'rest-url' ? (
-                      <Check size={14} className="mr-1" />
-                    ) : (
-                      <Copy size={14} className="mr-1" />
-                    )}
-                    {t('copyEndpoint')}
-                  </button>
+                  className="mt-2 text-xs flex items-center text-green-700 hover:text-green-900 bg-green-100 hover:bg-green-200 px-2 py-1 rounded"
+                  onClick={() =>
+                    copyToClipboard(
+                      `${restOutput.method} ${converterBaseUrl}${
+                        restOutput.path
+                      }${
+                        restOutput.queryParams
+                          ? constructQueryString(restOutput.queryParams)
+                          : ''
+                      }`,
+                      'rest-url'
+                    )
+                  }
+                >
+                  {copiedButtonId === 'rest-url' ? (
+                    <Check size={14} className="mr-1" />
+                  ) : (
+                    <Copy size={14} className="mr-1" />
+                  )}
+                  {t('copyEndpoint')}
+                </button>
               </div>
             </div>
           )}
@@ -4764,6 +5167,22 @@ const ApiComparisonConverter: React.FC = () => {
                 </h3>
               </div>
               <div className="p-4">
+               {/* ======================================================================= */}
+                {/* ===== PŘESNĚ SEM VLOŽTE TENTO CONSOLE.LOG ===== */}
+                {<>{console.log(
+                  'POKUS O RENDER VÝSLEDKU: activeTab:',
+                  activeTab,
+                  '| restOutput existuje:',
+                  !!restOutput,
+                  '| restOutput.success JE:', // <--- PŘIDÁNO
+                  restOutput ? restOutput.success : 'N/A', // <--- PŘIDÁNO
+                  '| restOutput.notes existuje:',
+                  !!(restOutput && restOutput.notes),
+                  '| Počet notes:',
+                  (restOutput && restOutput.notes) ? restOutput.notes.length : 'N/A'
+                )}</>}
+                {/* ======================================================================= */}
+
                 {/* Podmíněné renderování výstupu */}
                 {restOutput === null ? (
                   <div className="flex items-center justify-center bg-gray-50 border-2 border-dashed border-gray-300 rounded-md p-6 min-h-[350px]">
@@ -4861,6 +5280,7 @@ const ApiComparisonConverter: React.FC = () => {
           </div>
         </div>
       )}
+      {renderVersionInfo()}
     </div> // Konec hlavního kontejneru
   );
 };
