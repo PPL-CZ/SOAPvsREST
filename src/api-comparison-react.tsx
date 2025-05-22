@@ -16,15 +16,12 @@ import {
   Globe,
 } from 'lucide-react';
 
-const APP_VERSION = 'v1.0.5';
-const APP_BUILD_DATE = '2025-05-19';
+const APP_VERSION = 'v1.0.7';
+const APP_BUILD_DATE = '2025-05-22';
 const APP_VERSION_NOTES = [
-  'Initial release',
-  'Fixed extraction of array values from SOAP XML',
-  'Added proper handling of CustRefs mapping to CustomerReferences',
-  'Added consistent Limit=1000 and Offset=0 for all GET requests',
-  'Fixed extraction of PackNumbers from SOAP XML with namespace prefixes',
-  'Improved handling of comma-separated values in string elements',
+  'Fixed UniqueImportId',
+  'cancelOrder - Note missing',
+  'Orders - fixed (date / sendDate)',
 ];
 
 // --- Typy pro Porovnávací Část ---
@@ -131,7 +128,7 @@ interface Order {
   shipmentCount: number;
   note?: string;
   email?: string;
-  date: string;
+  sendDate: string;
   sender: SenderRecipient;
   recipient?: SenderRecipient;
 }
@@ -622,7 +619,6 @@ const apiData = {
       restEndpoint: 'POST /shipment/batch',
       docUrl: endpointDocUrls['POST /shipment/batch'],
       fields: [
-        // Všechna pole z file 2 pro shipment-create
         {
           soapField: 'PackNumber',
           restField: 'shipmentNumber',
@@ -996,7 +992,6 @@ const apiData = {
       restEndpoint: 'GET /shipment',
       docUrl: endpointDocUrls['GET /shipment'],
       fields: [
-        // Pole z file 2
         {
           soapField: 'Filter.PackNumbers[]',
           restField: 'ShipmentNumbers[] (query param)',
@@ -1118,7 +1113,7 @@ const apiData = {
         },
         {
           soapField: 'SendDate',
-          restField: 'date',
+          restField: 'sendDate',
           soapType: 'dateTime',
           restType: 'string (date)',
           soapRequired: true,
@@ -1286,7 +1281,7 @@ const apiData = {
         },
         {
           soapField: 'SendDate',
-          restField: 'date',
+          restField: 'sendDate',
           soapType: 'dateTime',
           restType: 'string (date)',
           soapRequired: true,
@@ -1404,7 +1399,6 @@ const apiData = {
           notes: 'Email odesílatele',
           notesEn: 'Sender email',
         },
-
         {
           soapField: 'Recipient.Name',
           restField: 'recipient.name',
@@ -2614,13 +2608,19 @@ const ApiComparisonConverter: React.FC = () => {
 
   // Zpracování CreatePackages - OPRAVENÁ VERZE
   const handleCreatePackages = (xml: string) => {
+    // --- Extrakce pro CustomerUniqueImportId ---
+    const customerUniqueImportId = extractValue(xml, 'CustomerUniqueImportId');
+    const referenceIdValue = customerUniqueImportId
+      ? customerUniqueImportId
+      : 'CHYBI TENTO POVINNY PARAMETR';
+
     // --- Extrakce pro top-level pole (pokud existuje) ---
     const integratorId = extractValue(xml, 'IntegrId') ?? undefined;
 
     // --- Extrakce pro Shipment objekt ---
     const shipment: Shipment = {
       productType: extractValue(xml, 'PackProductType') || 'BUSS',
-      referenceId: extractValue(xml, 'PackRef') ?? undefined,
+      referenceId: referenceIdValue,
       note: extractValue(xml, 'Note') ?? undefined,
       depot: extractValue(xml, 'DepoCode') ?? undefined,
       sender: {
@@ -2786,7 +2786,7 @@ const ApiComparisonConverter: React.FC = () => {
         productType: string;
         orderType: string;
         shipmentCount: number;
-        date: string;
+        sendDate: string;
         note?: string;
         email?: string;
         customerReference?: string;
@@ -2817,7 +2817,7 @@ const ApiComparisonConverter: React.FC = () => {
         productType: productType,
         orderType: 'transportOrder', // Pevně dáno - objednávka doručení
         shipmentCount: 1, // Výchozí hodnota
-        date: new Date().toISOString().split('T')[0], // Výchozí datum
+        sendDate: new Date().toISOString().split('T')[0], // Výchozí datum
         sender: {
           name:
             extractNestedValue(xml, 'Sender', 'Name') || 'chybějící - jméno',
@@ -2899,7 +2899,7 @@ const ApiComparisonConverter: React.FC = () => {
       // AKTUALIZACE: Správné formátování data pro REST API (YYYY-MM-DD)
       const sendDateRaw = extractValue(xml, 'SendDate');
       if (sendDateRaw) {
-        order.date = formatDateToYYYYMMDD(sendDateRaw);
+        order.sendDate = formatDateToYYYYMMDD(sendDateRaw);
       }
 
       // AKTUALIZACE: Validace povinných polí pro odesílatele
@@ -2965,7 +2965,7 @@ const ApiComparisonConverter: React.FC = () => {
         productType: string;
         orderType: string;
         shipmentCount: number;
-        date: string;
+        sendDate: string;
         note?: string;
         email?: string;
         customerReference?: string;
@@ -2985,7 +2985,7 @@ const ApiComparisonConverter: React.FC = () => {
         productType: extractValue(xml, 'PackProductType') || 'BUSS',
         orderType: 'collectionOrder', // Pevně dáno - objednávka svozu
         shipmentCount: 1, // Výchozí hodnota
-        date: new Date().toISOString().split('T')[0], // Výchozí datum
+        sendDate: new Date().toISOString().split('T')[0], // Výchozí datum
         sender: {
           name:
             extractNestedValue(xml, 'Sender', 'Name') || 'chybějící - jméno',
@@ -3037,7 +3037,7 @@ const ApiComparisonConverter: React.FC = () => {
       // AKTUALIZACE: Správné formátování data pro REST API (YYYY-MM-DD)
       const sendDateRaw = extractValue(xml, 'SendDate');
       if (sendDateRaw) {
-        order.date = formatDateToYYYYMMDD(sendDateRaw);
+        order.sendDate = formatDateToYYYYMMDD(sendDateRaw);
       }
 
       // AKTUALIZACE: Validace povinných polí pro odesílatele
@@ -3364,26 +3364,32 @@ const ApiComparisonConverter: React.FC = () => {
       console.log('=== Processing StatusLang - NEW VERSION ===');
       try {
         // Zkusíme přímo hledat tag v XML bez ohledu na cestu
-        const statusLangMatch = xml.match(/<v1:StatusLang[^>]*>([^<]*)<\/v1:StatusLang>/i);
+        const statusLangMatch = xml.match(
+          /<v1:StatusLang[^>]*>([^<]*)<\/v1:StatusLang>/i
+        );
         console.log('StatusLang match result:', statusLangMatch);
-        
+
         if (statusLangMatch && statusLangMatch[1]) {
           const statusLangValue = statusLangMatch[1].trim();
           console.log('FOUND StatusLang value:', statusLangValue);
-          
+
           // VŽDY přidáme upozornění, když najdeme StatusLang
           notes.push({
             type: 'warning',
             parameter: 'StatusLang',
-            message: 'Parametr StatusLang nemá ekvivalent v CPL API a bude ignorován.'
+            message:
+              'Parametr StatusLang nemá ekvivalent v CPL API a bude ignorován.',
           });
           console.log('Added warning about StatusLang');
         } else if (xml.includes('StatusLang')) {
-          console.log('StatusLang string found in XML, but value not extracted');
+          console.log(
+            'StatusLang string found in XML, but value not extracted'
+          );
           notes.push({
             type: 'warning',
             parameter: 'StatusLang',
-            message: 'Parametr StatusLang byl detekován, ale nemá ekvivalent v CPL API a bude ignorován.'
+            message:
+              'Parametr StatusLang byl detekován, ale nemá ekvivalent v CPL API a bude ignorován.',
           });
           console.log('Added warning about detected StatusLang');
         } else {
@@ -3393,22 +3399,22 @@ const ApiComparisonConverter: React.FC = () => {
         console.error('Error processing StatusLang:', error);
       }
 
-            // 15. Zpracování VariableSymbolsCOD parametru
-            try {
-              console.log('=== Processing VariableSymbolsCOD ===');
-              const variableSymbolsCOD = extractValue(xml, 'VariableSymbolsCOD');
-              console.log('Extracted VariableSymbolsCOD:', variableSymbolsCOD);
+      // 15. Zpracování VariableSymbolsCOD parametru
+      try {
+        console.log('=== Processing VariableSymbolsCOD ===');
+        const variableSymbolsCOD = extractValue(xml, 'VariableSymbolsCOD');
+        console.log('Extracted VariableSymbolsCOD:', variableSymbolsCOD);
 
-              if (variableSymbolsCOD) {
-                queryParams.VariableSymbolsCOD = variableSymbolsCOD;
-                console.log(
-                  'Added VariableSymbolsCOD to queryParams:',
-                  variableSymbolsCOD
-                );
-              }
-            } catch (e) {
-              console.error('Error processing VariableSymbolsCOD:', e);
-            }
+        if (variableSymbolsCOD) {
+          queryParams.VariableSymbolsCOD = variableSymbolsCOD;
+          console.log(
+            'Added VariableSymbolsCOD to queryParams:',
+            variableSymbolsCOD
+          );
+        }
+      } catch (e) {
+        console.error('Error processing VariableSymbolsCOD:', e);
+      }
 
       // Výpis kompletních query parametrů pro kontrolu
       console.log(
@@ -3420,7 +3426,10 @@ const ApiComparisonConverter: React.FC = () => {
       const finalQueryString = constructQueryString(queryParams);
       console.log('=== Final query string ===', finalQueryString);
       console.log('Poznámky před výstupem:', JSON.stringify(notes, null, 2));
-      console.log('Výsledné queryParams:', JSON.stringify(queryParams, null, 2));
+      console.log(
+        'Výsledné queryParams:',
+        JSON.stringify(queryParams, null, 2)
+      );
       console.log('========== KONEC handleGetPackages ==========');
 
       // Nastavení výsledku pro UI
@@ -3433,7 +3442,6 @@ const ApiComparisonConverter: React.FC = () => {
         body: null,
         notes: notes.length > 0 ? notes : undefined,
       });
-
     } catch (error: any) {
       console.error('Chyba zpracování GetPackages:', error);
       setRestOutput({
@@ -3645,30 +3653,32 @@ const ApiComparisonConverter: React.FC = () => {
       const orderNumber = extractValue(xml, 'OrderNumber');
       const custRef = extractValue(xml, 'CustRef');
 
-      if (!orderNumber && !custRef) {
-        setRestOutput({
-          success: false,
-          error: 'Chybí identifikace objednávky (OrderNumber nebo CustRef)',
-        });
-        return;
-      }
-
-      // Extrakce poznámky - volitelné
-      const note = extractValue(xml, 'Note');
-
-      // V REST API je vše jako query parametry
+      // V REST API jsou orderNumber a customerReference jako query parametry
       const queryParams: Record<string, string> = {};
 
       if (orderNumber) {
         queryParams.orderNumber = orderNumber;
       }
-
+      // V REST API je custRef jako customerReference
       if (custRef) {
         queryParams.customerReference = custRef;
       }
 
-      if (note) {
-        queryParams.note = note;
+      // Extrakce poznámky - volitelné, půjde do těla požadavku
+      const noteValue = extractValue(xml, 'Note');
+      const body = noteValue ? { note: noteValue } : {};
+
+      // Poznámka: Pokud by REST API vyžadovalo customerReference nebo orderReference v těle
+      // místo v query, logika by se musela přizpůsobit.
+      // Aktuálně dle swaggeru jsou v query.
+
+      // Ověření, zda je přítomen alespoň jeden z povinných identifikátorů (dle CPL API dokumentace)
+      // I když swagger je neoznačuje jako required, logicky by jeden z nich měl být pro identifikaci.
+      if (!orderNumber && !custRef) {
+        console.warn(
+          'Pro CancelOrder chybí identifikace objednávky (OrderNumber nebo CustRef). Výsledný REST požadavek nemusí být validní.'
+        );
+        // Můžete zde přidat i note do restOutput, pokud chcete uživatele informovat v UI
       }
 
       setRestOutput({
@@ -3676,8 +3686,8 @@ const ApiComparisonConverter: React.FC = () => {
         operation: 'CancelOrder',
         method: 'POST',
         path: '/order/cancel',
-        queryParams: queryParams,
-        body: {}, // POST, ale prázdné tělo
+        queryParams: queryParams, // orderNumber a customerReference jdou jako query
+        body: body, // note jde do těla požadavku
       });
     } catch (error: any) {
       console.error('Chyba zpracování CancelOrder:', error);
@@ -3966,46 +3976,7 @@ const ApiComparisonConverter: React.FC = () => {
     setRestOutput(null);
   };
 
-// Renderování výstupu pro REST
-const renderRestOutput = () => {
-  // TYTO LOGY ZŮSTÁVAJÍ, JSOU DŮLEŽITÉ
-  console.log('--- renderRestOutput --- Vstupní hodnota restOutput.notes:', JSON.stringify(restOutput?.notes, null, 2));
-  if (restOutput) {
-    console.log('renderRestOutput: success =', restOutput.success); // Tento log jste už měl přidat
-    console.log('renderRestOutput: notes =', restOutput.notes ? 'exists' : 'undefined/null');
-    if (restOutput.notes) {
-      console.log('renderRestOutput: notes length =', restOutput.notes.length);
-      console.log('renderRestOutput: notes content =', JSON.stringify(restOutput.notes, null, 2));
-    }
-  }
- 
-  return (
-    <div className="output-success flex-grow" style={{border: "2px dashed blue", padding: "10px"}}> {/* Přidán modrý rámeček pro identifikaci tohoto bloku */}
-      <p style={{color: "blue", fontWeight: "bold"}}>TOTO JE ZE ZJEDNODUŠENÉ renderRestOutput</p>
-
-      {/* NÁŠ SUPER JEDNODUCHÝ TEST PRO POZNÁMKY */}
-      {restOutput && restOutput.notes && restOutput.notes.length > 0 && (
-        <div style={{ border: "5px solid limegreen", padding: "20px", marginTop: "15px", backgroundColor: "lightgreen" }}>
-          <h2 style={{ color: "darkgreen", fontSize: "20px", fontWeight: "bold" }}>
-            TEST ZOBRAZENÍ POZNÁMEK JE TADY!!!
-          </h2>
-          <p style={{ marginTop: "10px" }}>
-            Počet poznámek, které jsem našel: {restOutput.notes.length}
-          </p>
-          <p style={{ marginTop: "5px" }}>Obsah první poznámky:</p>
-          <pre style={{ backgroundColor: "white", padding: "10px", marginTop: "5px" }}>
-            {JSON.stringify(restOutput.notes[0], null, 2)}
-          </pre>
-        </div>
-      )}
-      {/* KDYŽ POZNÁMKY NEJSOU, ZOBRAZÍME NĚCO JINÉHO */}
-      {!(restOutput && restOutput.notes && restOutput.notes.length > 0) && (
-        <p style={{color: "orange", marginTop: "10px"}}>Poznámky (notes) nebyly nalezeny nebo je pole prázdné.</p>
-      )}
-    </div>
-  );
-  // ===== KONEC NOVÉHO, ZJEDNODUŠENÉHO RETURN BLOKU =====
-};
+  // Renderování výstupu pro REST
 
   // Zde by byl vrácen JSX komponenty
   return (
@@ -5167,20 +5138,24 @@ const renderRestOutput = () => {
                 </h3>
               </div>
               <div className="p-4">
-               {/* ======================================================================= */}
-                {/* ===== PŘESNĚ SEM VLOŽTE TENTO CONSOLE.LOG ===== */}
-                {<>{console.log(
-                  'POKUS O RENDER VÝSLEDKU: activeTab:',
-                  activeTab,
-                  '| restOutput existuje:',
-                  !!restOutput,
-                  '| restOutput.success JE:', // <--- PŘIDÁNO
-                  restOutput ? restOutput.success : 'N/A', // <--- PŘIDÁNO
-                  '| restOutput.notes existuje:',
-                  !!(restOutput && restOutput.notes),
-                  '| Počet notes:',
-                  (restOutput && restOutput.notes) ? restOutput.notes.length : 'N/A'
-                )}</>}
+                {
+                  <>
+                    {console.log(
+                      'POKUS O RENDER VÝSLEDKU: activeTab:',
+                      activeTab,
+                      '| restOutput existuje:',
+                      !!restOutput,
+                      '| restOutput.success JE:', // <--- PŘIDÁNO
+                      restOutput ? restOutput.success : 'N/A', // <--- PŘIDÁNO
+                      '| restOutput.notes existuje:',
+                      !!(restOutput && restOutput.notes),
+                      '| Počet notes:',
+                      restOutput && restOutput.notes
+                        ? restOutput.notes.length
+                        : 'N/A'
+                    )}
+                  </>
+                }
                 {/* ======================================================================= */}
 
                 {/* Podmíněné renderování výstupu */}
@@ -5273,6 +5248,33 @@ const renderRestOutput = () => {
                         {JSON.stringify(restOutput.body, null, 2)}
                       </pre>
                     </div> */}
+                    {/* === VLOŽTE NOVÝ KÓD PRO POZNÁMKY PŘESNĚ SEM === */}
+                    {restOutput.notes && restOutput.notes.length > 0 && (
+                      <div className="mt-4 border border-yellow-200 rounded-md bg-yellow-50 p-3">
+                        <h4 className="text-sm font-medium text-yellow-800 mb-2">
+                          {language === 'cs'
+                            ? 'Poznámky ke konverzi:'
+                            : 'Conversion Notes:'}
+                        </h4>
+                        <ul className="text-xs text-yellow-700 space-y-1">
+                          {restOutput.notes.map((note, index) => (
+                            <li key={index} className="flex items-start">
+                              {note.type === 'warning' && (
+                                <AlertCircle
+                                  size={14}
+                                  className="mr-1 mt-0.5 flex-shrink-0 text-yellow-600"
+                                />
+                              )}
+                              <span>
+                                <strong>{note.parameter}:</strong>{' '}
+                                {note.message}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {/* === KONEC NOVÉHO KÓDU PRO POZNÁMKY === */}
                   </div>
                 )}
               </div>
