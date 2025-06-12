@@ -1,6 +1,11 @@
 {
   "name": "vite-react-typescript-starter",
   "private": true,
+  "homepage": "https://ppl-cz.github.io/SOAPvsREST/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PPL-CZ/SOAPvsREST.git"
+  },
   "version": "0.0.0",
   "type": "module",
   "dependencies": {
