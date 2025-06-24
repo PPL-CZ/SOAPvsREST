@@ -13,8 +13,39 @@ export const transformCreatePackagesToRest = (
 
   const integratorId = extractValue(xml, 'IntegrId') ?? undefined;
 
-  const shipment: Partial<Shipment> = {
-    productType: extractValue(xml, 'PackProductType') || 'BUSS',
+  // Mapování číselných ProductType na ISO kódy
+const productTypeMapping: { [key: string]: string } = {
+  '1': 'BUSS',
+  '2': 'BUSD', 
+  '3': 'MAXP',
+  '4': 'MAXD',
+  '7': 'DOPD',
+  '8': 'DOPD',
+  '9': 'COPL',
+  '10': 'BUED',
+  '11': 'IMPO',
+  '12': 'IMPD',
+  '13': 'PRIV',
+  '14': 'PRID',
+  '36': 'CONN',
+  '37': 'COND',
+  '41': 'RETC',
+  '42': 'EURO',
+  '43': 'EURD',
+  '45': 'RETD',
+  '46': 'SMAR',
+  '47': 'SMAD',
+  '48': 'SMEU',
+  '49': 'SMED',
+  '50': 'RECI',
+  '51': 'RECE'
+};
+
+const rawProductType = extractValue(xml, 'PackProductType');
+const productType = rawProductType ? (productTypeMapping[rawProductType] || rawProductType) : 'BUSS';
+
+const shipment: Partial<Shipment> = {
+  productType: productType,
     referenceId: referenceIdValue,
     note: extractValue(xml, 'Note') ?? undefined,
     depot: extractValue(xml, 'DepoCode') ?? undefined,
@@ -133,10 +164,30 @@ export const transformCreatePackagesToRest = (
       shipment.recipient.email = t('converterRequiredPlaceholder') as string;
   }
 
-  const weightStr = extractValue(xml, 'Weight');
-  if (weightStr) {
-    shipment.weight = parseFloat(weightStr.replace(',', '.')) || undefined; // Zajistí undefined, pokud parsování selže
+ const weightStr = extractValue(xml, 'Weight');
+if (weightStr) {
+  const weightValue = parseFloat(weightStr.replace(',', '.'));
+  if (!isNaN(weightValue)) {
+    // Váha se vždy ukládá do shipmentSet -> shipmentSetItems[0] -> weighedShipmentInfo
+    if (!shipment.shipmentSet) {
+      shipment.shipmentSet = {
+        numberOfShipments: 1,
+      };
+    }
+
+    if (!(shipment.shipmentSet as any).shipmentSetItems) {
+      (shipment.shipmentSet as any).shipmentSetItems = [{}];
+    }
+
+    if (!(shipment.shipmentSet as any).shipmentSetItems[0]) {
+      (shipment.shipmentSet as any).shipmentSetItems[0] = {};
+    }
+
+    (shipment.shipmentSet as any).shipmentSetItems[0].weighedShipmentInfo = {
+      weight: weightValue,
+    };
   }
+}
 
   const parcelShopCode = extractNestedValue(
     xml,
